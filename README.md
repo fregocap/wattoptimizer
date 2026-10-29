@@ -137,6 +137,17 @@ Principle then need the switching structure guessed in advance. Collocation hand
 path constraints natively. The NLP multipliers approximate the PMP costates, so the
 indirect view is still available for analysis (see Roadmap).
 
+## Getting the targets onto your bike computer (planned)
+
+![WattOptimizer plan synced through intervals.icu to a bike computer](docs/intervals-sync.svg)
+
+The plan is merged into a manageable number of steps (here 14) and uploaded to
+[intervals.icu](https://intervals.icu) as a planned workout with **distance-based steps**.
+intervals.icu then syncs it to Garmin Connect or Wahoo like any other planned workout.
+On the bike, the workout screen shows the current target band and what comes next, and
+moves to the next step by distance, so there's no lap button to press mid-race.
+`--export intervals` is not implemented yet; see the Roadmap.
+
 ## Configuration
 
 Everything lives in a TOML file with `[athlete]` and `[race]` tables; see
@@ -185,7 +196,7 @@ Contributions are welcome. Good first big items:
 - [ ] Durability: CP/W′ decaying with accumulated kJ above a threshold
 - [ ] Run leg: couple bike reserves to a running power/pace model for full-race optimisation
 - [ ] Stochastic wind: optimise expected time over an ensemble forecast
-- [ ] Export targets to head units (.fit workout / course points) and Zwift/ERG files
+- [ ] Export targets to head units: intervals.icu upload, .fit workout with distance steps, printable stem card
 - [ ] Indirect (PMP) solver seeded from the collocation multipliers
 - [ ] Parameter estimation of $C_dA$/$C_{rr}$ and CP/W′ from your own .fit rides
 
