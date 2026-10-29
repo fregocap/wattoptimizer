@@ -27,25 +27,81 @@ Even pace  273 W constant meets the same reserves in 1:02:05 -> plan saves 93 s
  30.0- 31.0   -2.0     215   58.4  -3.0   1:02    49:36   5.1  352  aero
 ```
 
-## Quick start
+## Set up in 5 minutes
+
+You need **Python 3.11 or newer** (`python3 --version`). Nothing else: the solver
+(IPOPT) ships inside the CasADi package.
+
+**1. Install** (≈30 s)
 
 ```bash
-git clone https://github.com/fregocap/wattoptimizer.git && cd wattoptimizer
-pip install -e ".[fit,plot]"          # or: uv sync --all-extras
-
-wattopt demo-course demo.gpx           # synthetic 40 km out-and-back TT
-wattopt plan demo.gpx -c examples/athlete.toml \
-    --wind-speed 5 --wind-from 90 --plot plan.png --csv plan.csv
+python3 -m venv ~/.wattopt && source ~/.wattopt/bin/activate
+pip install "wattoptimizer[fit,plot] @ git+https://github.com/fregocap/wattoptimizer"
 ```
 
-With a real course and the forecast for race morning (Open-Meteo, no API key; past
-dates use the historical archive so you can re-analyse a race):
+In a new terminal, run `source ~/.wattopt/bin/activate` again before using `wattopt`.
+
+**2. Check it works on the demo course** (≈10 s)
 
 ```bash
-wattopt plan ironman_bike.gpx -c me.toml --weather --start 2026-07-12T07:30+02:00
+wattopt demo-course demo.gpx
+curl -sO https://raw.githubusercontent.com/fregocap/wattoptimizer/main/examples/athlete.toml
+wattopt plan demo.gpx -c athlete.toml --wind-speed 5 --wind-from 90
 ```
 
-From Python:
+You should see a finish time, the reserves at T2 and a per-km table
+(see [Reading the output table](#race-and-plan)).
+
+**3. Put in your numbers** (≈2 min). Open `athlete.toml` and change at least these:
+
+| key | where to get it | if you don't know it |
+|---|---|---|
+| `cp` | a CP test, or the CP estimate in intervals.icu / WKO / Golden Cheetah | use your FTP |
+| `w_prime` | same tools as CP (WKO calls it FRC) | 20000 (20 kJ) |
+| `rider_mass`, `bike_mass` | scales; include bottles and kit on the bike | — |
+| `cda_aero`, `cda_climb` | a wind-tunnel, velodrome or field test | 0.23 / 0.30 on a TT bike, 0.27 / 0.32 on a road bike with clip-ons |
+| `w_prime_final`, `glycogen_final` | how much you want left for the run | TT: 0 and 0. 70.3: 0.25 and 250 g |
+| `cho_intake` | what you plan to eat and drink per hour on the bike | 80 |
+
+Every key is explained in the [Glossary](#glossary); anything you leave out uses a sensible default.
+
+**4. Get your course** (≈1 min). Export the race route as **.gpx** (or .fit) from
+the race website, Strava (route → Export GPX), Garmin Connect (course → Export),
+RideWithGPS or Komoot. A recording of a previous ride on the course works too.
+
+**5. Plan with race-day weather** (≈20 s)
+
+```bash
+wattopt plan race.gpx -c athlete.toml --weather --start 2026-07-12T07:30+02:00 \
+    --plot plan.png --csv plan.csv
+```
+
+Use your real start time *with its UTC offset*. The forecast covers about the next
+two weeks; for a past date the historical weather is used, which is handy for
+re-analysing a race. Without `--weather` the plan assumes no wind; you can also set
+one by hand with `--wind-speed 4 --wind-from 225`.
+
+**Optional: send it to your bike computer** (≈1 min). Create an API key in intervals.icu
+(Settings → Developer settings), then:
+
+```bash
+export INTERVALS_API_KEY=your-key
+wattopt plan race.gpx -c athlete.toml --weather --start 2026-07-12T07:30+02:00 \
+    --export intervals --dry-run     # check the steps, then run again without --dry-run
+```
+
+See [Getting the targets onto your bike computer](#getting-the-targets-onto-your-bike-computer)
+for how the export is verified and what to check on your device.
+
+**If something goes wrong**
+
+* `error: IPOPT did not converge`: the reserves you asked for are too high for the
+  course; lower `w_prime_final` or `glycogen_final`.
+* `reading .fit files needs ...`: you installed without `[fit]`; rerun the install line.
+* `--weather needs a start time`: add `--start`.
+* Odd gradients on a GPS recording: smooth the elevation more, e.g. `--elevation-smoothing 200`.
+
+### From Python
 
 ```python
 from wattoptimizer import Athlete, RaceSpec, ConstantWind, load_course, optimize
