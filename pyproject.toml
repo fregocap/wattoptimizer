@@ -1,0 +1,36 @@
+[project]
+name = "wattoptimizer"
+version = "0.1.0"
+description = "Open-source optimal pacing for time trials and triathlon bike legs: course physics, wind, W'bal and glycogen solved as an optimal control problem."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+keywords = ["cycling", "triathlon", "pacing", "optimal-control", "casadi", "sports-science"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "casadi>=3.6",
+    "gpxpy>=1.5",
+]
+
+[project.optional-dependencies]
+fit = ["fitdecode>=0.10"]
+plot = ["matplotlib>=3.7"]
+
+[project.scripts]
+wattopt = "wattoptimizer.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
