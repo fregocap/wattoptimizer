@@ -99,6 +99,7 @@ def test_upload_sends_authenticated_upsert(monkeypatch, plan, stepped):
     def fake_urlopen(req, timeout):
         sent["url"], sent["method"] = req.full_url, req.get_method()
         sent["auth"] = req.get_header("Authorization")
+        sent["agent"] = req.get_header("User-agent")
         sent["body"] = json.loads(req.data)
         return io.BytesIO(json.dumps([_doc_for(steps)]).encode())
 
@@ -109,6 +110,7 @@ def test_upload_sends_authenticated_upsert(monkeypatch, plan, stepped):
     assert sent["method"] == "POST"
     assert sent["url"] == "https://intervals.icu/api/v1/athlete/i123/events/bulk?upsert=true"
     assert sent["auth"] == "Basic QVBJX0tFWTpzZWNyZXQ="  # API_KEY:secret
+    assert sent["agent"].startswith("wattoptimizer/")  # urllib's default is blocked by Cloudflare
     assert sent["body"][0]["category"] == "WORKOUT"
     assert sent["body"][0]["start_date_local"] == "2026-07-12T00:00:00"
     assert sent["body"][0]["external_id"].endswith("2026-07-12")

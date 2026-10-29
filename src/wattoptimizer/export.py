@@ -23,6 +23,7 @@ from urllib.request import Request, urlopen
 
 import numpy as np
 
+from . import __version__
 from .optimizer import Plan, SolverOptions, optimize_steps
 from .simulate import SimResult, meets_reserves, simulate
 
@@ -266,6 +267,8 @@ def _request(method: str, url: str, api_key: str, body, timeout: float):
     token = base64.b64encode(f"API_KEY:{api_key}".encode()).decode()
     data = None if body is None else json.dumps(body).encode()
     req = Request(url, data=data, method=method, headers={
+        # Cloudflare in front of intervals.icu rejects urllib's default user agent (error 1010)
+        "User-Agent": f"wattoptimizer/{__version__} (+https://github.com/fregocap/wattoptimizer)",
         "Authorization": f"Basic {token}",
         "Content-Type": "application/json",
         "Accept": "application/json",
