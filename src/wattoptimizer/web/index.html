@@ -553,8 +553,9 @@ dialog::backdrop { background: rgb(10 10 8 / .5); }
   fetch("/api/status").then((r) => r.json()).then((s) => {
     envKey = s.env_key;
     if (envKey) {
-      $("keyLabel").classList.add("hidden");
-      $("keyHint").textContent = "Using the INTERVALS_API_KEY set on this computer.";
+      // the field stays: a key typed here overrides the one set on this computer
+      for (const id of ["pushKey", "estKey"]) $(id).placeholder = "Optional: INTERVALS_API_KEY is set";
+      $("keyHint").textContent = "Using the INTERVALS_API_KEY set on this computer unless you type another key here.";
     } else {
       $("keyHint").textContent = "The key goes only to this local server and on to intervals.icu; it isn't stored.";
     }
@@ -1139,7 +1140,6 @@ dialog::backdrop { background: rgb(10 10 8 / .5); }
   });
 
   $("helpBtn").addEventListener("click", () => {
-    $("estKey").classList.toggle("hidden", envKey);
     if (!$("estKey").value) $("estKey").value = $("pushKey").value;
     if (!$("estWeight").value) $("estWeight").value = form.elements.rider_mass.value;
     update();
@@ -1165,6 +1165,10 @@ dialog::backdrop { background: rgb(10 10 8 / .5); }
     dlg.close();
     $("planStatus").innerHTML = `<span class="ok">Filled in ${Object.keys(fill).length} values. Check them, then make your plan.</span>`;
   });
+
+  // one key, two fields: keep them in step
+  $("pushKey").addEventListener("input", () => { $("estKey").value = $("pushKey").value; });
+  $("estKey").addEventListener("input", () => { $("pushKey").value = $("estKey").value; });
 
   $("dlBtn").addEventListener("click", () => {
     if (!plan) return;

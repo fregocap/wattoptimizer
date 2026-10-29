@@ -11,6 +11,14 @@ you choose instead of an empty tank.
 
 New to terms like CP, W′ or CHO? See the [Glossary](#glossary).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png">
+  <img alt="The WattOptimizer web app: your numbers on the left; finish time, reserves at T2 and the course map coloured by power on the right" src="docs/screenshots/dashboard.png">
+</picture>
+
+<sub>The local web app (`wattopt serve`) on the IRONMAN 70.3 Vilamoura bike course, with
+the example athlete. Hover the map or the chart and the other follows.</sub>
+
 ```text
 Course     WattOptimizer demo 40 km TT: 40.0 km, +381 m
 Finish     1:00:32  (avg 267 W = 95% CP, 39.7 km/h, 969 kJ)
@@ -110,7 +118,16 @@ Don't know your CP or CdA? Press **Help me estimate these**: it reads your weigh
 and power curve from intervals.icu (or fits CP and W′ to the best 2–20 min efforts in a
 .fit ride file), and turns pictures of riding positions, your tyres and road, what you
 eat and what comes after the bike into the model's inputs. They are typical values, not
-measurements, so treat the plan as a starting point until you've tested. The map loads Leaflet
+measurements, so treat the plan as a starting point until you've tested.
+
+| Along the course | Help me estimate |
+|---|---|
+| ![Elevation, power with the workout steps, speed, W′ balance and glycogen along the course, with their T2 targets](docs/screenshots/chart.png) | ![Picking a riding position from drawings to estimate drag area](docs/screenshots/estimate.png) |
+
+![The workout steps with their watt bands and riding position, next to the push to intervals.icu](docs/screenshots/steps.png)
+
+The intervals.icu key: set `INTERVALS_API_KEY` in your shell, or paste it into the key
+field on the page (that one wins if both are there). It is never saved by the page. The map loads Leaflet
 from cdnjs and its background tiles from OpenStreetMap, so those servers see which area
 you're looking at; without internet the map is simply left out.
 
