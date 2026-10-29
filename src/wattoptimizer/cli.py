@@ -1,4 +1,4 @@
-"""Command-line interface: ``wattopt plan`` and ``wattopt demo-course``."""
+"""Command-line interface: ``wattopt plan``, ``wattopt serve`` and ``wattopt demo-course``."""
 
 from __future__ import annotations
 
@@ -55,7 +55,16 @@ def main(argv: list[str] | None = None) -> int:
     demo = sub.add_parser("demo-course", help="write a synthetic 40 km out-and-back TT as GPX")
     demo.add_argument("output", type=Path)
 
+    web = sub.add_parser("serve", help="open the local web app: drop a course, plan, push to intervals.icu")
+    web.add_argument("--port", type=int, default=8765)
+    web.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+
     args = parser.parse_args(argv)
+    if args.command == "serve":
+        from .web import serve
+
+        serve(args.port, open_browser=not args.no_browser)
+        return 0
     if args.command == "demo-course":
         from .demo import write_demo_gpx
 

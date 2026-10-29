@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WattOptimizer</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface: #f6f5f2;
+  --card: #fcfcfb;
+  --border: #e4e3df;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #7c7b76;
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --terrain: #c9c8c2;
+  --band: #eeede9;
+  --good: #1c7c3c;
+  --bad: #c0362c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #121211;
+    --card: #1a1a19;
+    --border: #2e2e2c;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-3: #8f8e86;
+    --accent: #3987e5;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --terrain: #4a4945;
+    --band: #252523;
+    --good: #4cb36b;
+    --bad: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #121211; --card: #1a1a19; --border: #2e2e2c; --text: #f0efec; --text-2: #c3c2b7;
+  --text-3: #8f8e86; --accent: #3987e5; --series-1: #3987e5; --series-2: #d95926; --terrain: #4a4945;
+  --band: #252523; --good: #4cb36b; --bad: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--surface); color: var(--text);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+.lede { color: var(--text-2); margin: 0 0 20px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+.drop {
+  border: 1.5px dashed var(--border); border-radius: 10px; padding: 28px 16px; text-align: center;
+  color: var(--text-2); cursor: pointer; transition: border-color .15s, background .15s;
+}
+.drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.drop strong { color: var(--text); }
+.drop .file { margin-top: 6px; color: var(--accent); font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+legend { font-weight: 600; margin-bottom: 8px; font-size: 13px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-2); }
+input, select {
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 9px; width: 100%; min-width: 0;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.hint { font-size: 12px; color: var(--text-3); }
+button {
+  font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink);
+}
+button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+button:disabled { opacity: .5; cursor: progress; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.status { color: var(--text-2); font-size: 14px; }
+.error { color: var(--bad); }
+.ok { color: var(--good); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.tile .k { font-size: 12px; color: var(--text-2); }
+.tile .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.tile .s { font-size: 12px; color: var(--text-3); }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { fill: var(--text-2); font-size: 11px; }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin: 0 0 6px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 9px; font-size: 12px; color: var(--text); white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / .12); display: none; font-variant-numeric: tabular-nums;
+}
+.tip b { font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--text-2); font-weight: 600; }
+th:last-child, td:last-child { text-align: left; }
+.scroll { overflow-x: auto; }
+pre { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; overflow-x: auto; margin: 0; }
+details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin-top: 12px; }
+.hidden { display: none !important; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: -2px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>WattOptimizer</h1>
+  <p class="lede">Drop a course, enter your numbers, get the fastest power plan you can sustain, and send it to your watch or bike computer.</p>
+
+  <form id="form" class="card" autocomplete="off">
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose a GPX or FIT course file">
+      <strong>Drop a .gpx or .fit course here</strong> or click to choose
+      <div id="fileName" class="file"></div>
+    </div>
+    <input id="file" type="file" accept=".gpx,.fit" class="hidden">
+
+    <div style="height:18px"></div>
+    <fieldset>
+      <legend>You</legend>
+      <div class="grid">
+        <label>Critical power (W)<input name="cp" type="number" step="1" value="280" required></label>
+        <label>W′ (kJ)<input name="w_prime_kj" type="number" step="0.5" value="20" required></label>
+        <label>Rider weight (kg)<input name="rider_mass" type="number" step="0.1" value="72" required></label>
+        <label>Bike + kit (kg)<input name="bike_mass" type="number" step="0.1" value="9"></label>
+        <label>CdA aero (m²)<input name="cda_aero" type="number" step="0.005" value="0.23"></label>
+        <label>CdA upright (m²)<input name="cda_climb" type="number" step="0.005" value="0.30"></label>
+        <label>Crr<input name="crr" type="number" step="0.0005" value="0.004"></label>
+        <label>Glycogen at start (g)<input name="glycogen" type="number" step="10" value="500"></label>
+        <label>Carbs eaten (g/h)<input name="cho_intake" type="number" step="5" value="80"></label>
+      </div>
+      <p class="hint">No CP? Use about 95% of your FTP. Typical W′ is 15–25 kJ.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Race</legend>
+      <div class="grid">
+        <label>Start (your time zone)<input name="start" type="datetime-local"></label>
+        <label>Wind
+          <select name="wind">
+            <option value="calm">Calm</option>
+            <option value="forecast">Forecast (Open-Meteo)</option>
+            <option value="constant">Constant</option>
+          </select>
+        </label>
+        <label class="windc">Wind speed (m/s)<input name="wind_speed" type="number" step="0.5" value="3"></label>
+        <label class="windc">Wind from (°)<input name="wind_from" type="number" step="5" value="0"></label>
+        <label>W′ left at T2 (%)<input name="w_prime_final_pct" type="number" step="5" value="25"></label>
+        <label>Glycogen left at T2 (g)<input name="glycogen_final" type="number" step="10" value="250"></label>
+        <label>Workout steps<input name="steps" type="number" step="1" min="2" max="60" value="20"></label>
+      </div>
+      <p class="hint">The forecast covers about 14 days ahead; older dates use the weather archive. Set the start time for either.</p>
+    </fieldset>
+
+    <div class="row">
+      <button id="planBtn" type="submit">Make my plan</button>
+      <span id="planStatus" class="status"></span>
+    </div>
+  </form>
+
+  <section id="results" class="hidden">
+    <div id="tiles" class="tiles"></div>
+
+    <div class="card">
+      <h2 id="chartTitle">Plan</h2>
+      <div class="legend">
+        <span><i style="background:var(--series-1)"></i>Optimal power</span>
+        <span><i style="background:var(--series-2)"></i>Workout steps</span>
+        <span><i style="background:var(--text-3);height:0;border-top:1.5px dashed var(--text-3)"></i>CP</span>
+      </div>
+      <div id="chart" class="chart"><div id="tip" class="tip"></div></div>
+      <details><summary>Solver summary</summary><pre id="summary"></pre></details>
+    </div>
+
+    <div class="card">
+      <h2>Send it to your device</h2>
+      <p class="status" style="margin-top:0">Uploads the steps to your intervals.icu calendar. intervals.icu then syncs it to Coros, Garmin or Wahoo if you've connected them under Settings → Connections (with workout upload on). Open the workout on the device on race day: steps change by distance.</p>
+      <div class="grid">
+        <label>Date<input id="pushDate" type="date"></label>
+        <label>Workout name<input id="pushName" type="text"></label>
+        <label id="keyLabel">intervals.icu API key<input id="pushKey" type="password" placeholder="Settings → Developer settings"></label>
+      </div>
+      <p id="keyHint" class="hint"></p>
+      <div class="row" style="margin-top:12px">
+        <button id="pushBtn" type="button">Push to Coros / bike computer</button>
+        <button id="dlBtn" type="button" class="secondary">Download workout text</button>
+        <span id="pushStatus" class="status"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Workout steps</h2>
+      <div class="scroll"><table id="stepsTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form = $("form"), fileInput = $("file"), drop = $("drop");
+  let course = null, plan = null, envKey = false;
+  const STORE = "wattoptimizer.inputs";
+
+  // remember inputs on this browser (never the API key)
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
+    for (const [k, v] of Object.entries(saved)) if (form.elements[k]) form.elements[k].value = v;
+  } catch (e) {}
+  const remember = () => {
+    try {
+      const out = {};
+      for (const el of form.elements) if (el.name) out[el.name] = el.value;
+      localStorage.setItem(STORE, JSON.stringify(out));
+    } catch (e) {}
+  };
+
+  const syncWind = () => {
+    const constant = form.elements.wind.value === "constant";
+    document.querySelectorAll(".windc").forEach((el) => el.classList.toggle("hidden", !constant));
+  };
+  form.elements.wind.addEventListener("change", syncWind);
+  syncWind();
+
+  fetch("/api/status").then((r) => r.json()).then((s) => {
+    envKey = s.env_key;
+    if (envKey) {
+      $("keyLabel").classList.add("hidden");
+      $("keyHint").textContent = "Using the INTERVALS_API_KEY set on this computer.";
+    } else {
+      $("keyHint").textContent = "The key is sent only to this local server and on to intervals.icu; it isn't stored.";
+    }
+  }).catch(() => {});
+
+  // file drop
+  const takeFile = (f) => {
+    if (!f) return;
+    if (!/\.(gpx|fit)$/i.test(f.name)) { $("fileName").textContent = "That isn't a .gpx or .fit file"; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      course = { filename: f.name, data: reader.result.split(",")[1] };
+      $("fileName").textContent = `${f.name} (${(f.size / 1024).toFixed(0)} kB)`;
+    };
+    reader.readAsDataURL(f);
+  };
+  drop.addEventListener("click", () => fileInput.click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener("change", () => takeFile(fileInput.files[0]));
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => takeFile(e.dataTransfer.files[0]));
+
+  const isoWithOffset = (local) => {
+    if (!local) return null;
+    const d = new Date(local);
+    const off = -d.getTimezoneOffset(), sign = off >= 0 ? "+" : "-", a = Math.abs(off);
+    return `${local.length === 16 ? local + ":00" : local}${sign}${String(Math.floor(a / 60)).padStart(2, "0")}:${String(a % 60).padStart(2, "0")}`;
+  };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!course) { $("planStatus").innerHTML = '<span class="error">Drop a course file first.</span>'; return; }
+    remember();
+    const f = form.elements;
+    const body = {
+      ...course,
+      athlete: {
+        cp: f.cp.value, w_prime: f.w_prime_kj.value * 1000, rider_mass: f.rider_mass.value, bike_mass: f.bike_mass.value,
+        cda_aero: f.cda_aero.value, cda_climb: f.cda_climb.value, crr: f.crr.value, glycogen: f.glycogen.value,
+        cho_intake: f.cho_intake.value,
+      },
+      race: { w_prime_final: f.w_prime_final_pct.value / 100, glycogen_final: f.glycogen_final.value },
+      start: isoWithOffset(f.start.value), wind: f.wind.value, wind_speed: f.wind_speed.value, wind_from: f.wind_from.value,
+      steps: f.steps.value,
+    };
+    $("planBtn").disabled = true;
+    $("planStatus").innerHTML = '<span class="spinner"></span>Solving: usually 10–60 s for a full bike leg…';
+    try {
+      const r = await fetch("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || r.statusText);
+      plan = out;
+      $("planStatus").textContent = "";
+      render(out, f.start.value);
+    } catch (err) {
+      $("planStatus").innerHTML = `<span class="error">${escapeHtml(err.message)}</span>`;
+    } finally {
+      $("planBtn").disabled = false;
+    }
+  });
+
+  const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const hms = (s) => {
+    s = Math.round(s);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}`;
+  };
+
+  function render(p, startLocal) {
+    $("results").classList.remove("hidden");
+    const saved = p.even_s - p.stepped_s;
+    $("tiles").innerHTML = [
+      ["Finish riding the steps", hms(p.stepped_s), `continuous optimum ${hms(p.finish_s)}`],
+      p.even_s == null
+        ? ["vs even power", "n/a", "no constant power meets the reserves on this course"]
+        : ["vs even power", `${saved >= 0 ? "−" : "+"}${Math.abs(Math.round(saved))} s`, `even pace: ${Math.round(p.even_w)} W → ${hms(p.even_s)}`],
+      ["Average power", `${Math.round(p.avg_w)} W`, `${p.distance_km.toFixed(1)} km, +${Math.round(p.gain_m)} m`],
+      ["Reserves", p.feasible ? "met" : "not met", p.offset_w ? `steps lowered ${p.offset_w} W to fit` : `wind: ${escapeHtml(p.wind)}`],
+    ].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v ${k === "Reserves" ? (p.feasible ? "ok" : "error") : ""}">${v}</div><div class="s">${s}</div></div>`).join("");
+    $("chartTitle").textContent = p.name;
+    $("summary").textContent = p.summary;
+    drawChart(p.series);
+
+    $("stepsTable").innerHTML = "<tr><th>#</th><th>From km</th><th>To km</th><th>Length</th><th>Target</th><th>Position</th></tr>" +
+      p.steps.map((s, i) => `<tr><td>${i + 1}</td><td>${s.start_km.toFixed(1)}</td><td>${s.end_km.toFixed(1)}</td>` +
+        `<td>${(s.end_km - s.start_km).toFixed(2)} km</td><td>${s.low}–${s.high} W</td><td>${s.upright ? "Sit up" : "Aero"}</td></tr>`).join("");
+
+    const day = startLocal ? startLocal.slice(0, 10) : new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    $("pushDate").value = day;
+    $("pushName").value = p.name;
+    $("pushStatus").textContent = "";
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ---- chart: stacked panels sharing the distance axis, one crosshair ----
+  function drawChart(s) {
+    const host = $("chart"), tip = $("tip");
+    host.querySelectorAll("svg").forEach((el) => el.remove());
+    const W = Math.max(host.clientWidth, 320), padL = 44, padR = 12, plotW = W - padL - padR;
+    const panels = [
+      { key: "elevation", label: "Elevation (m)", h: 70, area: true },
+      { key: "power", label: "Power (W)", h: 170, step: true },
+      { key: "speed", label: "Speed (km/h)", h: 80 },
+      { key: "w_bal", label: "W′ balance (kJ)", h: 80, zero: true },
+      { key: "glycogen", label: "Glycogen (g)", h: 80 },
+    ];
+    const gap = 26, axisH = 22;
+    const H = panels.reduce((a, p) => a + p.h + gap, 0) + axisH;
+    const km = s.km, n = km.length - 1, xMax = km[n];
+    const x = (v) => padL + (v / xMax) * plotW;
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("height", H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Elevation, power, speed, W′ balance and glycogen along the course");
+    const el = (tag, attrs, parent = svg) => {
+      const e = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      parent.appendChild(e);
+      return e;
+    };
+    const nice = (lo, hi, count) => {
+      const span = hi - lo || 1, raw = span / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((m) => span / m <= count) || 10 * mag;
+      const out = [];
+      for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+      return out;
+    };
+
+    let top = 8;
+    const scales = [];
+    for (const p of panels) {
+      const node = s[p.key];
+      let vals = node.slice();
+      if (p.key === "power") vals = vals.concat(s.stepped, s.cp);
+      let lo = Math.min(...vals), hi = Math.max(...vals);
+      if (p.zero || p.key === "power") lo = 0;
+      if (p.key === "elevation") { const pad = (hi - lo) * 0.1 || 5; lo -= pad; hi += pad; }
+      hi += (hi - lo) * 0.06 || 1;
+      const y = (v) => top + p.h - ((v - lo) / (hi - lo)) * p.h;
+      el("text", { x: padL, y: top - 2, "font-weight": 600, fill: "var(--text)" }).textContent = p.label;
+      for (const t of nice(lo, hi, p.h > 100 ? 5 : 3)) {
+        if (y(t) < top + 4) continue;
+        el("line", { x1: padL, x2: W - padR, y1: y(t), y2: y(t), stroke: "var(--border)", "stroke-width": 1 });
+        el("text", { x: padL - 6, y: y(t) + 4, "text-anchor": "end" }).textContent = Math.round(t * 10) / 10;
+      }
+      const segPath = (arr) => {
+        // segment-wise values: draw as steps between nodes
+        let d = "";
+        for (let i = 0; i < arr.length; i++) d += `${i ? "L" : "M"}${x(km[i]).toFixed(1)},${y(arr[i]).toFixed(1)}L${x(km[i + 1]).toFixed(1)},${y(arr[i]).toFixed(1)}`;
+        return d;
+      };
+      const nodePath = (arr) => arr.map((v, i) => `${i ? "L" : "M"}${x(km[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
+      if (p.area) {
+        el("path", { d: `${nodePath(node)}L${x(xMax)},${top + p.h}L${x(0)},${top + p.h}Z`, fill: "var(--terrain)", stroke: "none" });
+      } else if (p.step) {
+        el("path", { d: segPath(s.cp), fill: "none", stroke: "var(--text-3)", "stroke-width": 1.25, "stroke-dasharray": "4 3" });
+        el("path", { d: segPath(node), fill: "none", stroke: "var(--series-1)", "stroke-width": 1.5, "stroke-linejoin": "round" });
+        el("path", { d: segPath(s.stepped), fill: "none", stroke: "var(--series-2)", "stroke-width": 2, "stroke-linejoin": "round" });
+      } else {
+        el("path", { d: nodePath(node), fill: "none", stroke: "var(--series-1)", "stroke-width": 2, "stroke-linejoin": "round" });
+      }
+      el("line", { x1: padL, x2: W - padR, y1: top + p.h, y2: top + p.h, stroke: "var(--border)", "stroke-width": 1 });
+      scales.push({ ...p, y, top });
+      top += p.h + gap;
+    }
+    for (const t of nice(0, xMax, Math.max(4, Math.floor(plotW / 80)))) {
+      el("text", { x: x(t), y: top - gap + 16, "text-anchor": "middle" }).textContent = t;
+    }
+    el("text", { x: W - padR, y: top - gap + 16 + 14, "text-anchor": "end" }).textContent = "km";
+
+    const cross = el("line", { y1: 4, y2: top - gap, stroke: "var(--text-3)", "stroke-width": 1, visibility: "hidden" });
+    const dots = scales.filter((p) => !p.area).map(() => el("circle", { r: 4, fill: "var(--series-1)", stroke: "var(--card)", "stroke-width": 2, visibility: "hidden" }));
+    const hit = el("rect", { x: padL, y: 0, width: plotW, height: top, fill: "transparent" });
+    host.insertBefore(svg, tip);
+
+    const move = (clientX) => {
+      const r = svg.getBoundingClientRect(), sx = ((clientX - r.left) / r.width) * W;
+      const v = Math.min(Math.max((sx - padL) / plotW * xMax, 0), xMax);
+      let i = 0; while (i < n - 1 && km[i + 1] < v) i++;
+      const node = Math.abs(km[i + 1] - v) < Math.abs(km[i] - v) ? i + 1 : i;
+      const X = x(v);
+      cross.setAttribute("x1", X); cross.setAttribute("x2", X); cross.setAttribute("visibility", "visible");
+      let d = 0;
+      for (const p of scales) {
+        if (p.area) continue;
+        const val = p.step ? s[p.key][i] : s[p.key][node];
+        dots[d].setAttribute("cx", X); dots[d].setAttribute("cy", p.y(val)); dots[d].setAttribute("visibility", "visible"); d++;
+      }
+      tip.innerHTML = `<b>km ${v.toFixed(1)}</b> · ${Math.round(s.elevation[node])} m<br>` +
+        `Power <b>${s.power[i]} W</b> · step ${s.stepped[i]} W · CP ${s.cp[i]} W<br>` +
+        `${s.speed[node]} km/h · W′ ${s.w_bal[node]} kJ · glycogen ${s.glycogen[node]} g`;
+      tip.style.display = "block";
+      const px = (X / W) * r.width, tw = tip.offsetWidth;
+      tip.style.left = `${Math.min(Math.max(px + 12, 0), r.width - tw)}px`;
+      tip.style.top = `${(scales[1].top / H) * r.height}px`;
+    };
+    const leave = () => {
+      tip.style.display = "none"; cross.setAttribute("visibility", "hidden");
+      dots.forEach((c) => c.setAttribute("visibility", "hidden"));
+    };
+    hit.addEventListener("mousemove", (e) => move(e.clientX));
+    hit.addEventListener("touchmove", (e) => { move(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+    hit.addEventListener("mouseleave", leave);
+    hit.addEventListener("touchend", leave);
+  }
+  let resizeTimer;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => plan && drawChart(plan.series), 150); });
+
+  $("dlBtn").addEventListener("click", () => {
+    if (!plan) return;
+    const blob = new Blob([plan.workout + "\n"], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${plan.name.replace(/[^\w.-]+/g, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  $("pushBtn").addEventListener("click", async () => {
+    if (!plan) return;
+    if (!envKey && !$("pushKey").value.trim()) { $("pushStatus").innerHTML = '<span class="error">Enter your intervals.icu API key.</span>'; return; }
+    $("pushBtn").disabled = true;
+    $("pushStatus").innerHTML = '<span class="spinner"></span>Uploading and checking…';
+    try {
+      const r = await fetch("/api/push", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: plan.id, date: $("pushDate").value, name: $("pushName").value, api_key: $("pushKey").value }),
+      });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || r.statusText);
+      $("pushStatus").innerHTML = out.problems.length
+        ? `<span class="error">Uploaded, but intervals.icu read it differently: ${out.problems.map(escapeHtml).join("; ")}</span>`
+        : `<span class="ok">✓ On your intervals.icu calendar for ${out.date}; all ${out.steps} steps verified. It syncs to your device from there.</span>`;
+    } catch (err) {
+      $("pushStatus").innerHTML = `<span class="error">${escapeHtml(err.message)}</span>`;
+    } finally {
+      $("pushBtn").disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

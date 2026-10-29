@@ -93,6 +93,18 @@ wattopt plan race.gpx -c athlete.toml --weather --start 2026-07-12T07:30+02:00 \
 See [Getting the targets onto your bike computer](#getting-the-targets-onto-your-bike-computer)
 for how the export is verified and what to check on your device.
 
+**Prefer a web page?** Run
+
+```bash
+wattopt serve
+```
+
+and a page opens at http://127.0.0.1:8765. Drop your .gpx or .fit course on it,
+fill in your numbers and press **Make my plan**. You get the chart, the workout steps
+and a **Push to Coros / bike computer** button that uploads the steps to intervals.icu
+(and from there to your Coros, Garmin or Wahoo). The page runs on your computer only;
+your API key goes nowhere except intervals.icu.
+
 **If something goes wrong**
 
 * `error: IPOPT did not converge`: the reserves you asked for are too high for the
