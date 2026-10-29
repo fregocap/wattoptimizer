@@ -72,3 +72,12 @@ def test_bad_inputs_are_reported(server):
     assert status == 400 and "gpx" in out["error"]
     status, out = _request(server, "POST", "/api/push", {"id": "nope", "date": "2026-11-01"})
     assert status == 400
+
+
+def test_estimate_endpoints(server):
+    fake = web.estimate.Estimate(167.0, 20000.0, 70.0, 167, [], "CP set to your intervals.icu FTP")
+    with mock.patch.object(web.estimate, "from_intervals", lambda key: fake):
+        status, out = _request(server, "POST", "/api/estimate/intervals", {"api_key": "k"})
+    assert status == 200 and out["cp"] == 167.0 and out["weight"] == 70.0
+    status, out = _request(server, "POST", "/api/estimate/ride", {"filename": "ride.gpx", "data": ""})
+    assert status == 400 and ".fit" in out["error"]

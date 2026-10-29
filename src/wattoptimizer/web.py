@@ -22,7 +22,7 @@ from urllib.error import HTTPError
 
 import numpy as np
 
-from . import export, report
+from . import estimate, export, report
 from .athlete import Athlete, RaceSpec
 from .course import load_course
 from .optimizer import InfeasibleError, optimize
@@ -131,6 +131,28 @@ def make_plan(body: dict) -> dict:
     }
 
 
+def _estimate_json(est: estimate.Estimate) -> dict:
+    return {"cp": est.cp, "w_prime": est.w_prime, "weight": est.weight, "ftp": est.ftp,
+            "efforts": [{"secs": t, "watts": round(w)} for t, w in est.efforts], "note": est.note}
+
+
+def estimate_from_intervals(body: dict) -> dict:
+    api_key = (body.get("api_key") or "").strip() or os.environ.get("INTERVALS_API_KEY")
+    if not api_key:
+        raise ValueError("enter your intervals.icu API key (Settings > Developer settings)")
+    return _estimate_json(estimate.from_intervals(api_key))
+
+
+def estimate_from_ride(body: dict) -> dict:
+    name = Path(body.get("filename") or "ride.fit").name
+    if Path(name).suffix.lower() != ".fit":
+        raise ValueError("drop a .fit ride file with power data")
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / name
+        path.write_bytes(base64.b64decode(body["data"]))
+        return _estimate_json(estimate.from_ride(path))
+
+
 def push_plan(body: dict) -> dict:
     with _LOCK:
         stored = _PLANS.get(body.get("id", ""))
@@ -180,6 +202,10 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(200, make_plan(body))
             elif self.path == "/api/push":
                 self._json(200, push_plan(body))
+            elif self.path == "/api/estimate/intervals":
+                self._json(200, estimate_from_intervals(body))
+            elif self.path == "/api/estimate/ride":
+                self._json(200, estimate_from_ride(body))
             else:
                 self._json(404, {"error": "not found"})
         except HTTPError as exc:

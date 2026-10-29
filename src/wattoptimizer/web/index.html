@@ -233,6 +233,69 @@ td.r, th.r { text-align: right; }
 .flow span { background: var(--band); border-radius: 6px; padding: 3px 8px; color: var(--text-2); font-weight: 500; }
 .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 .actions button { width: 100%; }
+
+/* ---- estimate helper ---- */
+.helper {
+  width: 100%; margin: 0 0 14px; justify-content: flex-start; text-align: left; gap: 12px; padding: 12px 14px;
+  background: var(--accent-soft); color: var(--text); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.helper:hover { filter: none; border-color: var(--accent); }
+.helper .ico { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; }
+.helper b { display: block; font-size: 13.5px; }
+.helper small { display: block; font-size: 12px; font-weight: 400; color: var(--text-2); }
+.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0%, 30% { background: var(--accent-soft); border-color: var(--accent); } 100% { background: var(--raised); } }
+dialog {
+  border: 0; padding: 0; border-radius: 16px; width: min(780px, calc(100vw - 24px)); max-height: calc(100vh - 40px);
+  background: var(--card); color: var(--text); box-shadow: 0 24px 64px rgb(0 0 0 / .28); overflow: hidden;
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: rgb(10 10 8 / .5); }
+.dhead, .dfoot { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.dhead h2 { font-size: 17px; }
+.dhead .x { margin-left: auto; background: transparent; color: var(--text-2); padding: 6px 8px; }
+.dbody { overflow-y: auto; padding: 4px 20px 8px; }
+.dfoot { border-bottom: 0; border-top: 1px solid var(--border); flex-wrap: wrap; justify-content: flex-end; }
+.dfoot .will { margin-right: auto; font-size: 12.5px; color: var(--text-2); min-width: 0; flex: 1 1 260px; }
+.est { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.est:last-child { border-bottom: 0; }
+.esthead { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.esthead .n { width: 24px; height: 24px; border-radius: 50%; background: var(--band); color: var(--text-2); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex: none; margin-top: 1px; }
+.est.on .esthead .n { background: var(--accent); color: var(--accent-ink); }
+.esthead h3 { font-size: 14.5px; margin: 0; }
+.esthead p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); }
+.esthead label.use { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-2); cursor: pointer; flex: none; }
+.esthead input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.result { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--text-2); }
+.result b { color: var(--text); font-variant-numeric: tabular-nums; }
+.result:empty { display: none; }
+.opts { display: grid; gap: 10px; }
+.opts.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opts.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .opts.c4, .opts.c3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.opt {
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: left; background: var(--raised); color: var(--text);
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-weight: 500; font-size: 13px;
+}
+.opt:hover { filter: none; border-color: var(--border-2); }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.opt svg { width: 100%; height: auto; color: var(--text-2); }
+.opt[aria-pressed="true"] svg { color: var(--accent); }
+.opt small { color: var(--text-3); font-weight: 400; font-size: 11.5px; }
+.ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .ways { grid-template-columns: 1fr; } }
+.way { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--raised); display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--text-2); }
+.way b { color: var(--text); font-size: 13px; }
+.way button { padding: 8px 12px; font-size: 13px; }
+.rowlabel { font-size: 12px; color: var(--text-3); margin: 14px 0 8px; font-weight: 500; }
+.counter { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+.counter:last-child { border-bottom: 0; }
+.counter .what { flex: 1; min-width: 0; }
+.counter .what small { display: block; color: var(--text-3); font-size: 11.5px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: none; }
+.stepper button { background: var(--raised); color: var(--text); border-radius: 0; padding: 4px 10px; font-size: 15px; }
+.stepper span { min-width: 34px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.input input.gpb { width: 72px; height: 30px; padding: 4px 22px 4px 8px; }
 </style>
 </head>
 <body>
@@ -262,6 +325,10 @@ td.r, th.r { text-align: right; }
 
       <div class="section">
         <p class="section-title">You</p>
+        <button id="helpBtn" class="helper" type="button">
+          <span class="ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span>
+          <span><b>Help me estimate these</b><small>Pictures and simple questions instead of lab numbers</small></span>
+        </button>
         <div class="fields">
           <label class="field">Critical power<div class="input"><input name="cp" type="number" step="1" value="280" required><em>W</em></div></label>
           <label class="field">W′<div class="input"><input name="w_prime_kj" type="number" step="0.5" value="20" required><em>kJ</em></div></label>
@@ -273,7 +340,7 @@ td.r, th.r { text-align: right; }
           <label class="field">Glycogen at start<div class="input"><input name="glycogen" type="number" step="10" value="500"><em>g</em></div></label>
           <label class="field wide">Carbs eaten<div class="input"><input name="cho_intake" type="number" step="5" value="80"><em>g/h</em></div></label>
         </div>
-        <p class="hint">No CP? Use about 95% of your FTP. Typical W′ is 15–25 kJ.</p>
+        <p class="hint">No CP? Your FTP is a fair stand-in. Typical W′ is 15–25 kJ.</p>
       </div>
 
       <div class="section">
@@ -383,6 +450,78 @@ td.r, th.r { text-align: right; }
     </div>
   </main>
 </div>
+
+<dialog id="est" aria-labelledby="estTitle">
+  <div class="dhead">
+    <h2 id="estTitle">Estimate your numbers</h2>
+    <button type="button" class="x" id="estClose" aria-label="Close">✕</button>
+  </div>
+  <div class="dbody">
+    <section class="est" data-sec="power">
+      <div class="esthead"><span class="n">1</span>
+        <div><h3>Your power</h3><p>Critical power (CP) is the power you can hold for about 30–40 min; W′ is your sprint reserve above it.</p></div>
+        <label class="use"><input type="checkbox" data-use="power">Use</label></div>
+      <div class="ways">
+        <div class="way"><b>From intervals.icu</b>Reads your weight, FTP and power curve.
+          <input id="estKey" type="password" placeholder="intervals.icu API key">
+          <button type="button" id="estIcu">Fill from intervals.icu</button></div>
+        <div class="way"><b>From a hard ride</b>A .fit file with all-out 3–20 min efforts (a race, a test, a hard group ride).
+          <input id="estRide" type="file" accept=".fit" class="hidden">
+          <button type="button" class="secondary" id="estRideBtn">Choose a ride file</button></div>
+        <div class="way"><b>I know my FTP</b>CP is close to a well-tested FTP.
+          <div class="input"><input id="estFtp" type="number" min="50" max="600" placeholder="e.g. 220"><em>W</em></div></div>
+      </div>
+      <div id="resPower" class="result"></div>
+    </section>
+
+    <section class="est" data-sec="position">
+      <div class="esthead"><span class="n">2</span>
+        <div><h3>How you sit on the bike</h3><p>Sets your drag area (CdA). Pick the position you'll hold most of the race.</p></div>
+        <label class="use"><input type="checkbox" data-use="position">Use</label></div>
+      <div id="optPosition" class="opts c4"></div>
+      <div class="fields" style="margin-top:12px;max-width:320px">
+        <label class="field">Your height<div class="input"><input id="estHeight" type="number" value="178" min="140" max="210"><em>cm</em></div></label>
+        <label class="field">Your weight<div class="input"><input id="estWeight" type="number" step="0.1" min="35" max="150"><em>kg</em></div></label>
+      </div>
+      <div id="resPosition" class="result"></div>
+    </section>
+
+    <section class="est" data-sec="tyres">
+      <div class="esthead"><span class="n">3</span>
+        <div><h3>Tyres and road</h3><p>Sets the rolling resistance (Crr).</p></div>
+        <label class="use"><input type="checkbox" data-use="tyres">Use</label></div>
+      <div class="rowlabel">Your tyres</div>
+      <div id="optTyre" class="opts c3"></div>
+      <div class="rowlabel">The road surface</div>
+      <div id="optRoad" class="opts c3"></div>
+      <div id="resTyres" class="result"></div>
+    </section>
+
+    <section class="est" data-sec="fuel">
+      <div class="esthead"><span class="n">4</span>
+        <div><h3>Fuel</h3><p>How full your tank is at the start, and what you'll eat on the bike.</p></div>
+        <label class="use"><input type="checkbox" data-use="fuel">Use</label></div>
+      <div class="rowlabel">The days before</div>
+      <div id="optLoad" class="opts c3"></div>
+      <div class="rowlabel">Each hour on the bike</div>
+      <div id="counters"></div>
+      <div id="resFuel" class="result"></div>
+    </section>
+
+    <section class="est" data-sec="goal">
+      <div class="esthead"><span class="n">5</span>
+        <div><h3>What comes after the bike</h3><p>Sets how much W′ and glycogen the plan keeps for T2.</p></div>
+        <label class="use"><input type="checkbox" data-use="goal">Use</label></div>
+      <div id="optGoal" class="opts c3"></div>
+      <div id="resGoal" class="result"></div>
+    </section>
+  </div>
+  <div class="dfoot">
+    <div id="estWill" class="will">Pick anything above; only the sections marked “Use” are applied.</div>
+    <button type="button" class="secondary" id="estCancel">Cancel</button>
+    <button type="button" id="estApply">Apply to my numbers</button>
+  </div>
+</dialog>
 
 <script>
 (() => {
@@ -808,6 +947,224 @@ td.r, th.r { text-align: right; }
     if (plan) drawMap(plan);
   }));
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => plan && (drawChart(plan), drawMap(plan)));
+
+  // ---- "Help me estimate": pictures and simple questions → model inputs ----
+  const dlg = $("est");
+  const POSITIONS = [
+    { id: "hoods", label: "Road bike, hands on the hoods", sub: "sitting fairly upright", cda: 0.32, up: 0.32, angle: 45, bar: "hoods" },
+    { id: "drops", label: "Road bike, on the drops", sub: "lower, elbows bent", cda: 0.29, up: 0.32, angle: 33, bar: "drops" },
+    { id: "clip", label: "Road bike with clip-on bars", sub: "forearms on pads", cda: 0.26, up: 0.32, angle: 20, bar: "aero" },
+    { id: "tt", label: "Tri / TT bike, aero bars", sub: "low and narrow", cda: 0.23, up: 0.30, angle: 10, bar: "aero", tt: true },
+  ];
+  // CdA above is for a 178 cm, 70 kg rider; frontal area scales roughly with body surface area
+  const bsa = (kg, cm) => 0.007184 * Math.pow(kg, 0.425) * Math.pow(cm, 0.725);
+  const TYRES = [
+    { id: "race", label: "Race tyres", sub: "tubeless or latex tubes", crr: 0.0030, w: 2.5 },
+    { id: "training", label: "Good training tyres", sub: "all-round tyres, butyl tubes", crr: 0.0040, w: 4 },
+    { id: "tough", label: "Puncture-proof tyres", sub: "winter or commuting", crr: 0.0052, w: 6 },
+  ];
+  const ROADS = [
+    { id: "smooth", label: "Smooth, new asphalt", sub: "", k: 1.0, d: "M4 18 H92" },
+    { id: "typical", label: "Typical road", sub: "some patches and cracks", k: 1.15, d: "M4 18 H24 l3 -2 3 2 H52 l2 -3 2 3 H74 l3 -2 3 2 H92" },
+    { id: "rough", label: "Rough or chip seal", sub: "coarse, bumpy surface", k: 1.45, d: "M4 18 l4 -3 4 3 4 -4 4 4 4 -3 4 3 4 -4 4 4 4 -3 4 3 4 -4 4 4 4 -3 4 3 4 -4 4 4 4 -3 4 3 4 -4 4 4 4 -3 4 3" },
+  ];
+  const LOADS = [
+    { id: "loaded", label: "Carb-loaded", sub: "2–3 days of high-carb meals, then breakfast", gpk: 7.5 },
+    { id: "normal", label: "Normal eating", sub: "usual meals, then breakfast", gpk: 6.0 },
+    { id: "low", label: "Low-carb or no breakfast", sub: "the tank isn't full", gpk: 4.5 },
+  ];
+  const FOODS = [
+    { id: "gel", label: "Gels", sub: "about 25 g of carbs each", g: 25 },
+    { id: "bottle", label: "Bottles of drink mix", sub: "carbs per bottle from the label", g: null },
+    { id: "bar", label: "Bars or chews", sub: "about 40 g each", g: 40 },
+  ];
+  const GOALS = [
+    { id: "strong", label: "Run strong", sub: "half or full triathlon, keep plenty back", wp: 40, gly: 0.55, level: 0.75 },
+    { id: "balanced", label: "Balanced", sub: "a solid run, no heroics on the bike", wp: 25, gly: 0.45, level: 0.5 },
+    { id: "allout", label: "All out", sub: "time trial, nothing after the bike", wp: 5, gly: 0.15, level: 0.12 },
+  ];
+  const est = { power: null, position: null, tyre: "training", road: "typical", load: null, goal: null,
+                counts: { gel: 0, bottle: 0, bar: 0 }, bottleG: 40, use: {} };
+
+  function riderSvg(p) {
+    // stylised side view: bike, then the rider with the torso at p.angle from horizontal
+    const hip = [58, 36], rad = (p.angle * Math.PI) / 180, L = 30;
+    const sh = [hip[0] + L * Math.cos(rad), hip[1] - L * Math.sin(rad)];
+    const f = p.angle / 45, head = [sh[0] + 4 + 4 * (1 - f), sh[1] - 4 - 4 * f];
+    const headTop = p.tt ? [98, 46] : [98, 42];
+    let elbow, hand, bars;
+    if (p.bar === "aero") {
+      elbow = [sh[0] + 2, sh[1] + 14]; hand = [sh[0] + 20, sh[1] + 12];
+      bars = `M${headTop[0]} ${headTop[1]} L104 ${headTop[1] - 2} M${elbow[0] - 2} ${elbow[1] + 1} L${hand[0] + 4} ${hand[1]}`;
+    } else {
+      hand = p.bar === "drops" ? [107, 50] : [106, 40];
+      elbow = [(sh[0] + hand[0]) / 2 + (p.bar === "drops" ? 2 : 0), (sh[1] + hand[1]) / 2 + 6];
+      bars = `M${headTop[0]} ${headTop[1]} L105 40 Q110 40 109 46 Q108 52 103 51`;
+    }
+    const wheel = (cx) => p.tt && cx < 60
+      ? `<circle cx="${cx}" cy="74" r="20" fill="currentColor" opacity=".18"/><circle cx="${cx}" cy="74" r="20"/>`
+      : `<circle cx="${cx}" cy="74" r="20"/><circle cx="${cx}" cy="74" r="${p.tt ? 13 : 2}" ${p.tt ? 'opacity=".5"' : ""}/>`;
+    return `<svg viewBox="0 0 140 98" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <g stroke-width="2">${wheel(32)}${wheel(108)}
+        <path d="M32 74 L66 74 L58 40 Z M58 40 L${headTop[0]} ${headTop[1]} L66 74 M${headTop[0]} ${headTop[1]} L108 74 M52 38 H64 ${bars}"/></g>
+      <g stroke-width="4">
+        <path d="M${hip[0]} ${hip[1]} L68 58 L60 72" opacity=".35"/>
+        <path d="M${hip[0]} ${hip[1]} L76 52 L70 82"/>
+        <path d="M${hip[0]} ${hip[1]} L${sh[0].toFixed(1)} ${sh[1].toFixed(1)}"/>
+        <path d="M${sh[0].toFixed(1)} ${sh[1].toFixed(1)} L${elbow[0].toFixed(1)} ${elbow[1].toFixed(1)} L${hand[0].toFixed(1)} ${hand[1].toFixed(1)}" stroke-width="3"/>
+      </g>
+      <circle cx="${head[0].toFixed(1)}" cy="${head[1].toFixed(1)}" r="5.5" fill="currentColor" stroke="none"/>
+    </svg>`;
+  }
+  const tyreSvg = (t) => `<svg viewBox="0 0 96 36" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="48" cy="18" r="${15 - t.w / 2}" stroke-width="${t.w}"/><circle cx="48" cy="18" r="3" fill="currentColor" stroke="none"/></svg>`;
+  const roadSvg = (r) => `<svg viewBox="0 0 96 36" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="48" cy="9" r="7" stroke-width="2"/><path d="${r.d}" transform="translate(0 6)"/></svg>`;
+  const batterySvg = (g) => `<svg viewBox="0 0 96 36" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="22" y="8" width="48" height="20" rx="4"/><path d="M74 14v8" stroke-linecap="round"/><rect x="26" y="12" width="${(40 * g.level).toFixed(1)}" height="12" rx="2" fill="currentColor" stroke="none"/></svg>`;
+  const loadSvg = (l) => `<svg viewBox="0 0 96 36" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="22" y="8" width="48" height="20" rx="4"/><path d="M74 14v8" stroke-linecap="round"/><rect x="26" y="12" width="${(40 * l.gpk / 8).toFixed(1)}" height="12" rx="2" fill="currentColor" stroke="none"/></svg>`;
+
+  function options(hostId, list, key, pic) {
+    $(hostId).innerHTML = list.map((o) => `<button type="button" class="opt" data-id="${o.id}" aria-pressed="false">${pic ? pic(o) : ""}<span>${o.label}${o.sub ? `<small><br>${o.sub}</small>` : ""}</span></button>`).join("");
+    $(hostId).querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
+      est[key] = b.dataset.id;
+      $(hostId).querySelectorAll(".opt").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      touched(b);
+    }));
+  }
+  options("optPosition", POSITIONS, "position", riderSvg);
+  options("optTyre", TYRES, "tyre", tyreSvg);
+  options("optRoad", ROADS, "road", roadSvg);
+  // tyres and road start on the middle choice, shown selected but only applied once touched
+  for (const [host, id] of [["optTyre", est.tyre], ["optRoad", est.road]]) $(host).querySelector(`[data-id=${id}]`).setAttribute("aria-pressed", "true");
+  options("optLoad", LOADS, "load", loadSvg);
+  options("optGoal", GOALS, "goal", batterySvg);
+  $("counters").innerHTML = FOODS.map((f) => `<div class="counter"><div class="what">${f.label}<small>${f.sub}</small></div>` +
+    (f.g == null ? `<div class="input" style="width:auto"><input class="gpb" id="bottleG" type="number" value="40" min="0" max="150"><em>g</em></div>` : "") +
+    `<div class="stepper"><button type="button" data-food="${f.id}" data-d="-1" aria-label="fewer ${f.label}">−</button><span id="cnt_${f.id}">0</span><button type="button" data-food="${f.id}" data-d="1" aria-label="more ${f.label}">+</button></div></div>`).join("");
+  $("counters").querySelectorAll("[data-food]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.food;
+    est.counts[k] = Math.max(0, Math.min(6, est.counts[k] + +b.dataset.d * (k === "bottle" ? 0.5 : 1)));
+    $(`cnt_${k}`).textContent = est.counts[k];
+    touched(b);
+  }));
+  $("bottleG").addEventListener("input", (e) => { est.bottleG = +e.target.value || 0; touched(e.target); });
+  ["estHeight", "estWeight"].forEach((id) => $(id).addEventListener("input", (e) => touched(e.target)));
+
+  // interacting with a section switches its "Use" box on
+  function touched(el) {
+    const sec = el.closest(".est").dataset.sec;
+    if (sec === "position" && !est.position && (el.id === "estHeight" || el.id === "estWeight")) { update(); return; }
+    est.use[sec] = true;
+    dlg.querySelector(`[data-use=${sec}]`).checked = true;
+    update();
+  }
+  dlg.querySelectorAll("[data-use]").forEach((c) => c.addEventListener("change", () => { est.use[c.dataset.use] = c.checked; update(); }));
+
+  function values() {
+    const out = {}, kg = +$("estWeight").value || +form.elements.rider_mass.value;
+    if (est.power) Object.assign(out, est.power.weight ? { rider_mass: est.power.weight } : {},
+      est.power.cp ? { cp: Math.round(est.power.cp) } : {}, est.power.w_prime ? { w_prime_kj: +(est.power.w_prime / 1000).toFixed(1) } : {});
+    const pos = POSITIONS.find((p) => p.id === est.position);
+    if (pos) {
+      const k = bsa(kg, +$("estHeight").value || 178) / bsa(70, 178);
+      out.position = { cda_aero: +(pos.cda * k).toFixed(3), cda_climb: +(pos.up * k).toFixed(3) };
+    }
+    const tyre = TYRES.find((t) => t.id === (est.tyre || "training")), road = ROADS.find((r) => r.id === (est.road || "typical"));
+    out.crr = +(tyre.crr * road.k).toFixed(4);
+    const load = LOADS.find((l) => l.id === est.load);
+    if (load) out.glycogen = Math.round(Math.min(750, Math.max(250, load.gpk * kg)) / 10) * 10;
+    const gph = est.counts.gel * 25 + est.counts.bottle * est.bottleG + est.counts.bar * 40;
+    if (gph || est.use.fuel) out.cho_intake = gph;
+    const goal = GOALS.find((g) => g.id === est.goal);
+    if (goal) {
+      const start = out.glycogen || +form.elements.glycogen.value;
+      out.goal = { w_prime_final_pct: goal.wp, glycogen_final: Math.round((goal.gly * start) / 10) * 10 };
+    }
+    return out;
+  }
+
+  function update() {
+    const v = values();
+    dlg.querySelectorAll(".est").forEach((s) => s.classList.toggle("on", !!est.use[s.dataset.sec]));
+    const p = est.power;
+    $("resPower").innerHTML = p ? `${p.cp ? `CP <b>${Math.round(p.cp)} W</b>` : "No CP found"}${p.w_prime ? ` · W′ <b>${(p.w_prime / 1000).toFixed(1)} kJ</b>` : ""}` +
+      `${p.weight ? ` · weight <b>${p.weight} kg</b>` : ""}${p.efforts && p.efforts.length ? `<br>Best efforts: ${p.efforts.map((e) => `${e.secs / 60} min <b>${e.watts} W</b>`).join(" · ")}` : ""}` +
+      `<br><span class="hint">${escapeHtml(p.note)}</span>` : "";
+    $("resPosition").innerHTML = v.position ? `Drag area aero <b>${v.position.cda_aero} m²</b> · sitting up <b>${v.position.cda_climb} m²</b><br><span class="hint">A typical figure for this position and your size, ±10%. A field test gives your real one.</span>` : "";
+    $("resTyres").innerHTML = `Rolling resistance <b>Crr ${v.crr.toFixed(4)}</b>`;
+    const gph = v.cho_intake ?? 0;
+    $("resFuel").innerHTML = (v.glycogen || est.use.fuel) ? `${v.glycogen ? `Glycogen at the start <b>${v.glycogen} g</b> · ` : ""}carbs <b>${gph} g/h</b>` +
+      (gph > 90 ? `<br><span class="hint">Over 90 g/h only works if you've trained your gut for it.</span>` : gph && gph < 40 ? `<br><span class="hint">Under 40 g/h is low for a ride over 2 hours; most triathletes aim for 60–90 g/h.</span>` : "") : "";
+    $("resGoal").innerHTML = v.goal ? `Keep <b>${v.goal.w_prime_final_pct}% of W′</b> and <b>${v.goal.glycogen_final} g</b> of glycogen for T2` : "";
+    const names = { power: "power", position: "drag area", tyres: "rolling resistance", fuel: "fuel", goal: "T2 targets" };
+    const on = Object.keys(names).filter((k) => est.use[k]);
+    $("estWill").textContent = on.length ? `Will fill in: ${on.map((k) => names[k]).join(", ")}.` : "Pick anything above; only the sections marked “Use” are applied.";
+    $("estApply").disabled = !on.length;
+  }
+
+  const setPower = (data) => { est.power = data; touched($("estFtp")); };
+  $("estIcu").addEventListener("click", async () => {
+    const b = $("estIcu"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>Reading…';
+    try {
+      const r = await fetch("/api/estimate/intervals", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api_key: $("estKey").value }) });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || r.statusText);
+      setPower(out);
+      if (out.weight) $("estWeight").value = out.weight;
+    } catch (err) {
+      $("resPower").innerHTML = `<span class="error">${escapeHtml(err.message)}</span>`;
+    } finally { b.disabled = false; b.textContent = "Fill from intervals.icu"; }
+  });
+  $("estRideBtn").addEventListener("click", () => $("estRide").click());
+  $("estRide").addEventListener("change", () => {
+    const f = $("estRide").files[0];
+    if (!f) return;
+    const b = $("estRideBtn"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>Reading…';
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const r = await fetch("/api/estimate/ride", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: f.name, data: reader.result.split(",")[1] }) });
+        const out = await r.json();
+        if (!r.ok) throw new Error(out.error || r.statusText);
+        setPower(out);
+      } catch (err) {
+        $("resPower").innerHTML = `<span class="error">${escapeHtml(err.message)}</span>`;
+      } finally { b.disabled = false; b.textContent = "Choose another ride"; $("estRide").value = ""; }
+    };
+    reader.readAsDataURL(f);
+  });
+  $("estFtp").addEventListener("input", (e) => {
+    const ftp = +e.target.value;
+    if (ftp >= 50) setPower({ cp: ftp, w_prime: 20000, weight: null, efforts: [], note: "CP set to your FTP; W′ is a typical value (20 kJ)." });
+  });
+
+  $("helpBtn").addEventListener("click", () => {
+    $("estKey").classList.toggle("hidden", envKey);
+    if (!$("estKey").value) $("estKey").value = $("pushKey").value;
+    if (!$("estWeight").value) $("estWeight").value = form.elements.rider_mass.value;
+    update();
+    dlg.showModal();
+  });
+  [$("estClose"), $("estCancel")].forEach((b) => b.addEventListener("click", () => dlg.close()));
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });  // click on the backdrop
+
+  $("estApply").addEventListener("click", () => {
+    const v = values(), fill = {};
+    if (est.use.power && est.power) for (const k of ["cp", "w_prime_kj", "rider_mass"]) if (v[k] != null) fill[k] = v[k];
+    if (est.use.position && v.position) Object.assign(fill, v.position, { rider_mass: fill.rider_mass ?? +$("estWeight").value });
+    if (est.use.tyres && v.crr != null) fill.crr = v.crr;
+    if (est.use.fuel) { if (v.glycogen) fill.glycogen = v.glycogen; fill.cho_intake = v.cho_intake ?? 0; }
+    if (est.use.goal && v.goal) Object.assign(fill, v.goal);
+    for (const [k, val] of Object.entries(fill)) {
+      const el = form.elements[k];
+      if (!el || val == null || Number.isNaN(val)) continue;
+      el.value = val;
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }
+    remember();
+    dlg.close();
+    $("planStatus").innerHTML = `<span class="ok">Filled in ${Object.keys(fill).length} values. Check them, then make your plan.</span>`;
+  });
 
   $("dlBtn").addEventListener("click", () => {
     if (!plan) return;

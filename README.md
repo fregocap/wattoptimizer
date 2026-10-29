@@ -104,7 +104,13 @@ fill in your numbers and press **Make my plan**. You get a map of the course col
 by power, riding position or wind (hover it and the chart follows), the chart, the
 workout steps and a **Push to Coros / bike computer** button that uploads the steps to
 intervals.icu (and from there to your Coros, Garmin or Wahoo). The page runs on your
-computer only; your API key goes nowhere except intervals.icu. The map loads Leaflet
+computer only; your API key goes nowhere except intervals.icu.
+
+Don't know your CP or CdA? Press **Help me estimate these**: it reads your weight, FTP
+and power curve from intervals.icu (or fits CP and W′ to the best 2–20 min efforts in a
+.fit ride file), and turns pictures of riding positions, your tyres and road, what you
+eat and what comes after the bike into the model's inputs. They are typical values, not
+measurements, so treat the plan as a starting point until you've tested. The map loads Leaflet
 from cdnjs and its background tiles from OpenStreetMap, so those servers see which area
 you're looking at; without internet the map is simply left out.
 

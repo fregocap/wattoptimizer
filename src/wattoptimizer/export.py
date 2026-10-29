@@ -263,6 +263,11 @@ def _describe(step: dict) -> str:
     return json.dumps(keys)
 
 
+def intervals_get(path: str, api_key: str, timeout: float = 30.0):
+    """GET ``path`` (e.g. "/athlete/0") from the intervals.icu API."""
+    return _request("GET", f"{INTERVALS_API}{path}", api_key, None, timeout)
+
+
 def _request(method: str, url: str, api_key: str, body, timeout: float):
     token = base64.b64encode(f"API_KEY:{api_key}".encode()).decode()
     data = None if body is None else json.dumps(body).encode()
