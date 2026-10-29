@@ -114,3 +114,15 @@ def write_csv(rows: list[Split], path: str | Path) -> None:
         writer = csv.DictWriter(fh, fieldnames=list(asdict(rows[0])))
         writer.writeheader()
         writer.writerows(asdict(r) for r in rows)
+
+
+def format_steps(steps) -> str:
+    """Table of workout steps (see :mod:`wattoptimizer.export`)."""
+    header = f"{'step':>4} {'km':>11} {'length':>7} {'target':>10}  position"
+    lines = [header, "-" * len(header)]
+    for i, st in enumerate(steps, start=1):
+        lines.append(
+            f"{i:>4} {st.start_m / 1000:5.1f}-{st.end_m / 1000:5.1f} {st.length_m / 1000:6.2f}k "
+            f"{st.low_w:4.0f}-{st.high_w:<4.0f}W  {'sit up' if st.upright else 'aero'}"
+        )
+    return "\n".join(lines)

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from urllib.error import HTTPError
 from pathlib import Path
 
 from . import report
@@ -41,6 +44,14 @@ def main(argv: list[str] | None = None) -> int:
     plan.add_argument("--no-baseline", action="store_true", help="skip the even-pacing comparison")
     plan.add_argument("-v", "--verbose", action="store_true", help="show IPOPT output")
 
+    out = plan.add_argument_group("workout export")
+    out.add_argument("--steps", type=int, default=20, help="number of distance-based workout steps (default: 20)")
+    out.add_argument("--workout", type=Path, help="write the steps as intervals.icu workout text")
+    out.add_argument("--export", choices=["intervals"], help="upload the steps as a planned workout")
+    out.add_argument("--date", type=date.fromisoformat, help="workout date, YYYY-MM-DD (default: the start date)")
+    out.add_argument("--intervals-athlete", default="0", help="intervals.icu athlete id (default: the key's owner)")
+    out.add_argument("--dry-run", action="store_true", help="print the upload instead of sending it")
+
     demo = sub.add_parser("demo-course", help="write a synthetic 40 km out-and-back TT as GPX")
     demo.add_argument("output", type=Path)
 
@@ -54,6 +65,10 @@ def main(argv: list[str] | None = None) -> int:
         return _plan(args)
     except (InfeasibleError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except HTTPError as exc:
+        print(f"error: intervals.icu answered {exc.code} {exc.reason}: {exc.read().decode(errors='replace')[:300]}",
+              file=sys.stderr)
         return 1
 
 
@@ -108,6 +123,49 @@ def _plan(args) -> int:
 
         plot_plan(plan, args.plot)
         print(f"wrote {args.plot}")
+    if args.workout or args.export:
+        return _export(args, plan, baseline)
+    return 0
+
+
+def _export(args, plan, baseline) -> int:
+    from . import export
+
+    day = args.date or (plan.race.start_time.date() if plan.race.start_time else None)
+    if args.export and day is None:
+        raise ValueError("--export needs --date or a start time")
+    api_key = os.environ.get("INTERVALS_API_KEY")
+    if args.export and not args.dry_run and not api_key:
+        raise ValueError("set INTERVALS_API_KEY (intervals.icu > Settings > Developer settings)")
+
+    steps, check = export.plan_steps(plan, n_steps=args.steps)
+    print()
+    print(report.format_steps(steps))
+    vs_even = f", {baseline[1].total_time - check.sim.total_time:.0f} s faster than even pace" if baseline else ""
+    status = "meets the reserves" if check.feasible else "DOES NOT meet the reserves"
+    print(f"\nRiding these steps exactly: {report.format_duration(check.sim.total_time)} "
+          f"({check.time_cost_s:+.0f} s vs the continuous plan{vs_even}); {status}"
+          + (f" after lowering every step by {check.offset_w:.0f} W" if check.offset_w else ""))
+    if not check.feasible:
+        return 1
+
+    if args.workout:
+        args.workout.write_text(export.workout_text(steps) + "\n", encoding="utf-8")
+        print(f"wrote {args.workout}")
+    if args.export:
+        payload = export.event_payload(plan, steps, check, day)
+        if args.dry_run:
+            print(json.dumps(payload, indent=2))
+            return 0
+        event = export.upload_intervals(payload, api_key, args.intervals_athlete)
+        problems = export.verify_event(event, steps)
+        print(f"uploaded '{payload['name']}' to intervals.icu for {day} (event {event.get('id', '?')})")
+        if problems:
+            print("intervals.icu parsed the workout differently than intended:", file=sys.stderr)
+            for p in problems:
+                print(f"  - {p}", file=sys.stderr)
+            return 1
+        print(f"verified: intervals.icu parsed all {len(steps)} steps with the intended distances and watts")
     return 0
 
 

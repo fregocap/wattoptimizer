@@ -85,6 +85,17 @@ def simulate(
     return SimResult(speed=v, time=t, w_bal=w, glycogen=g, brake_force=brake, stalled=stalled)
 
 
+def meets_reserves(sim: SimResult, athlete: Athlete, race: RaceSpec, tol: float = 1e-6) -> bool:
+    """True if the ride never stalls or runs W'bal/glycogen dry and finishes with the race's reserves."""
+    return bool(
+        not sim.stalled
+        and sim.w_bal.min() >= -tol
+        and sim.w_bal[-1] >= race.w_prime_final * athlete.w_prime - tol
+        and sim.glycogen.min() >= -tol
+        and sim.glycogen[-1] >= race.glycogen_final - tol
+    )
+
+
 def best_even_power(
     course: Course,
     athlete: Athlete,
@@ -99,14 +110,7 @@ def best_even_power(
 
     def feasible(p: float) -> tuple[bool, SimResult]:
         sim = simulate(course, athlete, race, p, **sim_kwargs)
-        ok = (
-            not sim.stalled
-            and sim.w_bal.min() >= -1e-6
-            and sim.w_bal[-1] >= race.w_prime_final * athlete.w_prime - 1e-6
-            and sim.glycogen.min() >= -1e-6
-            and sim.glycogen[-1] >= race.glycogen_final - 1e-6
-        )
-        return ok, sim
+        return meets_reserves(sim, athlete, race), sim
 
     lo, hi = 0.0, athlete.p_max
     ok, best = feasible(lo)

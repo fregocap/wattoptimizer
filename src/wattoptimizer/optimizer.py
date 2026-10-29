@@ -30,7 +30,7 @@ this is resolved by a short fixed-point loop around the NLP.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import casadi as ca
 import numpy as np
@@ -179,6 +179,29 @@ def optimize(
     )
 
 
+def optimize_steps(plan: Plan, step_of: np.ndarray, options: SolverOptions | None = None) -> Plan:
+    """Re-solve ``plan`` with power constant within each step (``step_of[k]`` = step of segment k).
+
+    Wind and positions are held at the plan's, so the result is the fastest ride with
+    that step structure that still meets the race's reserves.
+    """
+    options = options or SolverOptions()
+    course, athlete, race = plan.course, plan.athlete, plan.race
+    n_steps = int(step_of.max()) + 1
+    t = plan.seg_time
+    means = np.bincount(step_of, plan.power * t, n_steps) / np.bincount(step_of, t, n_steps)
+    power = means[step_of]
+    sim = simulate(course, athlete, race, power, head_wind=plan.head_wind, cda=plan.cda,
+                   cp=plan.cp_segment, v_max=plan.v_max)
+    guess = dict(v=sim.speed, p=power, w=np.maximum(sim.w_bal, 0.0), g=np.maximum(sim.glycogen, 0.0),
+                 t=sim.time, b=sim.brake_force, a=plan.climbing.astype(float))
+    nlp = _Nlp(physics.segment_params(course, athlete, race.temperature), plan.v_max, athlete, race, options,
+               t_ref=plan.total_time, step_of=step_of)
+    sol = nlp.solve(plan.head_wind, guess, plan.climbing)
+    return replace(plan, power=sol["p"], speed=sol["v"], time=sol["t"], w_bal=sol["w"], glycogen=sol["g"],
+                   brake_force=sol["b"])
+
+
 class _Nlp:
     """The collocation NLP, built once and re-solved with updated parameters.
 
@@ -186,7 +209,8 @@ class _Nlp:
     time by a reference duration and brake force by body weight.
     """
 
-    def __init__(self, sp, vmax, athlete: Athlete, race: RaceSpec, options: SolverOptions, t_ref: float):
+    def __init__(self, sp, vmax, athlete: Athlete, race: RaceSpec, options: SolverOptions, t_ref: float,
+                 step_of: np.ndarray | None = None):
         n = len(sp.length)
         self.athlete, self.t_ref, self.weight = athlete, t_ref, sp.mass * physics.G
         w0, g0 = athlete.w_prime, athlete.glycogen
@@ -237,6 +261,10 @@ class _Nlp:
         o.subject_to(self.deficit >= 0.0)
         o.subject_to(self.a >= self.a_lo)
         o.subject_to(self.a <= self.a_hi)
+        if step_of is not None:  # power held constant within each workout step
+            same = np.flatnonzero(np.diff(step_of) == 0)
+            if same.size:
+                o.subject_to(self.p[(same + 1).tolist()] == self.p[same.tolist()])
 
         dp = self.p[1:] - self.p[:-1]
         o.minimize(

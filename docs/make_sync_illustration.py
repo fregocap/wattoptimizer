@@ -101,8 +101,8 @@ for i, (a, b, p) in enumerate(BLOCKS):
     x0 = bx + bw * a / 40 + 1; x1 = bx + bw * b / 40 - 1
     hh = bh * p / 380
     add(f'<rect x="{x0:.1f}" y="{by+bh-hh:.1f}" width="{x1-x0:.1f}" height="{hh:.1f}" rx="2" fill="{BLUE}" opacity="{1 if i == CURRENT else 0.55}"/>')
-text(bx, by + bh + 20, "- 1.5km 295-305W   climb, sit up", 11.5, INK, family=MONO)
-text(bx, by + bh + 38, "- 2.5km 280-290W", 11.5, INK2, family=MONO)
+text(bx, by + bh + 20, "- Sit up 1.50km 295-305w", 11.5, INK, family=MONO)
+text(bx, by + bh + 38, "- 2.50km 280-290w", 11.5, INK2, family=MONO)
 # sync targets
 text(X2 + 20, Y + 340, "auto-syncs planned workouts to", 12.5, INK2)
 for i, name in enumerate(["Garmin Connect", "Wahoo", "COROS*"]):
@@ -150,7 +150,7 @@ add(f'<rect x="{DX+DW/2-22}" y="{DY+DH-22}" width="44" height="6" rx="3" fill="#
 arrow(X1 + CW + 6, X2 - 6, Y + 230, "API upload", "workout steps")
 arrow(X2 + CW + 6, X3 - 6, Y + 230, "device sync", "Garmin / Wahoo")
 
-text(40, 590, "Planned feature: the --export intervals flag is on the roadmap and not implemented yet. "
+text(40, 590, "After upload, WattOptimizer reads back intervals.icu's parse of the workout and checks every step. "
      "Screen is an illustration, not any vendor's actual layout.", 12.5, INK2)
 text(40, 610, "* Check COROS support for distance-based steps before race day. "
      "Multisport (triathlon) workouts on watches vary by model.", 12.5, INK2)
