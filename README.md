@@ -69,8 +69,15 @@ m_\text{eff}\, v \frac{dv}{ds} = \frac{\eta P}{v}
   - m g\,(C_{rr}\cos\theta + \sin\theta) - F_\text{brake}
 $$
 
-$C_dA$ switches between the aero and the seated-upright position, and $\rho$ follows the
-barometric formula at the course elevation and the race temperature.
+$\rho$ follows the barometric formula at the course elevation and the race temperature.
+
+**Riding position.** A per-segment position $a \in \{0, 1\}$ (aero / upright) trades drag
+against sustainable power: most riders hold a lower CP on the aero bars.
+
+$$
+C_dA = C_dA_\text{aero} + a\,(C_dA_\text{up} - C_dA_\text{aero}), \qquad
+CP(a) = CP\,\big(f_\text{aero} + a\,(1 - f_\text{aero})\big)
+$$
 
 **W′ balance** (differential form, Skiba et al. 2015), with $P - CP = e^+ - e^-$ and $e^\pm \ge 0$:
 
@@ -108,9 +115,15 @@ $$
   non-negative excess $e^+$ and deficit $e^-$ instead of smoothing a `max()`. Smoothing
   puts large curvature right on the singular arc where an optimal TT rides
   ($P = CP$, $W' = 0$) and made IPOPT stall.
-* Wind depends on *when* each segment is ridden, and the position on how fast. Both
-  are resolved by a short **fixed-point loop**: solve → re-time the wind field →
-  re-choose positions → warm-start from a forward simulation → re-solve.
+* **Position is optimised**, not set by rule. The binary choice is first solved as its
+  continuous relaxation $a \in [0, 1]$, then rounded, with stints shorter than
+  `min_position_run` merged, and re-solved with positions fixed. The relaxation is
+  almost integral in practice, so rounding costs well under a second (reported in the
+  summary). The physics emerges on its own: sit up on slow climbs, where the CP gain
+  beats the drag cost, and stay aero on climbs into a headwind.
+* Wind depends on *when* each segment is ridden, which is resolved by a short
+  **fixed-point loop**: solve → re-time the wind field → warm-start from a forward
+  simulation → re-solve.
 * Plans are compared against the **best feasible even pace**: the highest constant
   power that meets the same reserves under the same wind and corners.
 
@@ -134,8 +147,9 @@ Everything lives in a TOML file with `[athlete]` and `[race]` tables; see
 |---|---|
 | `w_prime_final` | fraction of W′ you must still have at T2 |
 | `glycogen_final` | grams of carbohydrate store left at T2 |
-| `climb_grade`, `aero_min_speed` | when to sit up (grade above / speed below) |
-| `aero_cp_factor` (athlete) | CP on the aero bars relative to upright, which makes sitting up a real trade-off |
+| `position_mode` | `"optimize"` (default) or `"rules"` (`climb_grade` / `aero_min_speed` thresholds) |
+| `min_position_run` | shortest stint in one position, in metres |
+| `aero_cp_factor` (athlete) | CP on the aero bars relative to upright. This drives the position choice: at 1.0 you never sit up |
 | `lateral_accel`, `max_speed` | cornering limit $v^2/r$ and absolute speed cap |
 | `wind_height_factor` | rider-height wind / 10 m forecast wind (log-law, ~0.5–0.7) |
 
@@ -152,8 +166,8 @@ Read these before trusting a number on race day.
 * **The carbohydrate model is coarse**: a logistic CHO fraction, constant gross
   efficiency, no resting metabolism, no gut-absorption dynamics. Calibrate
   `cho_crossover`/`cho_slope` against lab substrate data if you have it.
-* **Positions follow rules**, not optimisation (grade/speed thresholds), and are
-  resolved in the outer loop.
+* **`aero_cp_factor` is individual.** The default 0.96 is a typical value, not a measured
+  one; test yourself (e.g. 20 min aero vs upright on a climb).
 * **Crosswind yaw is ignored**: only the along-track wind component enters, so $C_dA$
   does not change with yaw.
 * **Corners are resolved at the grid spacing** (`--ds`), so hairpins on a 100 m grid
@@ -166,7 +180,7 @@ Read these before trusting a number on race day.
 
 Contributions are welcome. Good first big items:
 
-- [ ] Optimise the riding position as a relaxed or mixed-integer decision instead of by rule
+- [x] Optimise the riding position (relaxation + rounding); next: exact MINLP / branch-and-bound
 - [ ] Yaw-dependent $C_dA(\beta)$ using the crosswind component
 - [ ] Durability: CP/W′ decaying with accumulated kJ above a threshold
 - [ ] Run leg: couple bike reserves to a running power/pace model for full-race optimisation

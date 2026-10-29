@@ -19,7 +19,7 @@ class Athlete:
     p_max: float = 900.0  # cap on segment-average power [W]
     cda_aero: float = 0.23  # drag area on the aero bars [m^2]
     cda_climb: float = 0.30  # drag area seated upright [m^2]
-    aero_cp_factor: float = 1.0  # CP in the aero position as a fraction of upright CP
+    aero_cp_factor: float = 0.96  # CP on the aero bars as a fraction of upright CP
     crr: float = 0.004  # rolling resistance coefficient
     drivetrain_efficiency: float = 0.975
     gross_efficiency: float = 0.21  # mechanical power / metabolic power
@@ -47,7 +47,9 @@ class RaceSpec:
     w_prime_final: float = 0.0  # W'bal required at the finish/T2, as a fraction of W'
     glycogen_final: float = 0.0  # carbohydrate store required at the finish/T2 [g]
     temperature: float = 20.0  # air temperature [C], used for air density
-    climb_grade: float = 0.05  # sit up when the grade exceeds this ...
+    position_mode: str = "optimize"  # "optimize" aero/upright, or follow the "rules" below
+    min_position_run: float = 300.0  # shortest stint in one position when optimising [m]
+    climb_grade: float = 0.05  # rules: sit up when the grade exceeds this ...
     aero_min_speed: float = 0.0  # ... or the speed drops below this [m/s]; 0 disables
     max_speed: float = 22.0  # never exceed this, e.g. for safety on descents [m/s]
     lateral_accel: float = 4.0  # cornering limit, v^2 / r [m/s^2]

@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from wattoptimizer import Athlete, ConstantWind, InfeasibleError, RaceSpec, best_even_power, optimize, simulate
+from wattoptimizer import Athlete, ConstantWind, Course, InfeasibleError, RaceSpec, best_even_power, optimize, simulate
+from wattoptimizer.optimizer import _round_positions
 
 
 def _even(plan):
@@ -59,3 +60,39 @@ def test_unreachable_target_raises(hilly_out_and_back):
     athlete = Athlete(glycogen=100.0, cho_intake=0.0)
     with pytest.raises(InfeasibleError):
         optimize(hilly_out_and_back, athlete, RaceSpec(glycogen_final=99.9))
+
+
+def _steep_course():
+    """5 km flat, then a 2 km 8% climb, then 3 km flat."""
+    x = np.arange(0.0, 10_001.0, 20.0)
+    z = np.clip(x - 5_000.0, 0.0, 2_000.0) * 0.08
+    return Course.from_profile(x, z, 0.0)
+
+
+def test_optimised_positions_sit_up_on_the_climb():
+    course = _steep_course()
+    athlete = Athlete(aero_cp_factor=0.9)
+    plan = optimize(course, athlete, RaceSpec(w_prime_final=0.2))
+    climb = course.grade > 0.06
+    flat = np.abs(course.grade) < 0.01
+    assert plan.climbing[climb].mean() > 0.9
+    assert plan.climbing[flat].mean() < 0.1
+    assert plan.relaxed_time is not None and plan.total_time - plan.relaxed_time < 2.0
+
+    rules = optimize(course, athlete, RaceSpec(w_prime_final=0.2, position_mode="rules", climb_grade=0.12))
+    assert plan.total_time < rules.total_time  # rules here never sit up
+
+
+def test_no_cp_benefit_means_always_aero():
+    plan = optimize(_steep_course(), Athlete(aero_cp_factor=1.0), RaceSpec())
+    assert not plan.climbing.any()
+
+
+def test_round_positions_merges_short_stints():
+    course = Course.from_profile(np.linspace(0.0, 2_000.0, 101), np.zeros(101), 0.0, ds=100.0)
+    a = np.zeros(course.n)
+    a[5] = 1.0  # a single 100 m upright blip
+    a[12:18] = 0.9  # a 600 m upright stint
+    upright = _round_positions(course, a, min_run=300.0)
+    assert not upright[:12].any()  # the blip is absorbed
+    assert upright[12:].all()  # the stint is kept, and the 200 m aero tail merges into it

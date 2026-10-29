@@ -91,6 +91,12 @@ def summary(plan: Plan, baseline: tuple[float, SimResult] | None = None) -> str:
         f"Reserves   W'bal {plan.w_bal[-1] / 1000:.1f} kJ ({plan.w_bal[-1] / a.w_prime:.0%}), "
         f"glycogen {plan.glycogen[-1]:.0f} g at the finish",
     ]
+    t = plan.seg_time
+    changes = int(np.count_nonzero(np.diff(plan.climbing.astype(np.int8))))
+    position = f"upright {(t * plan.climbing).sum() / plan.total_time:.0%} of the time, {changes} position changes"
+    if plan.relaxed_time is not None:
+        position += f" (optimised; rounding to aero/upright cost {plan.total_time - plan.relaxed_time:.1f} s)"
+    lines.append(f"Position   {position}")
     if baseline is not None:
         power, sim = baseline
         saved = sim.total_time - plan.total_time

@@ -34,6 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     plan.add_argument("--wind-from", type=float, default=0.0, help="direction the wind blows from [deg]")
     plan.add_argument("--w-prime-final", type=float, help="W'bal fraction required at the finish (0-1)")
     plan.add_argument("--glycogen-final", type=float, help="glycogen required at the finish [g]")
+    plan.add_argument("--positions", choices=["optimize", "rules"], help="choose aero/upright by optimisation or rules")
     plan.add_argument("--split", type=float, default=1000.0, help="split length [m] (default: 1000)")
     plan.add_argument("--csv", type=Path, help="write the splits to a CSV file")
     plan.add_argument("--plot", type=Path, help="save a chart of the plan (needs matplotlib)")
@@ -65,6 +66,8 @@ def _plan(args) -> int:
         race.w_prime_final = args.w_prime_final
     if args.glycogen_final is not None:
         race.glycogen_final = args.glycogen_final
+    if args.positions:
+        race.position_mode = args.positions
     if args.start:
         race.start_time = datetime.fromisoformat(args.start)
         if race.start_time.tzinfo is None:
