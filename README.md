@@ -9,18 +9,22 @@ bioenergetic state equations (W′ balance and glycogen) are solved together for
 power profile that **minimises finish time** while arriving at T2 with the reserves
 you choose instead of an empty tank.
 
+New to terms like CP, W′ or CHO? See the [Glossary](#glossary).
+
 ```text
 Course     WattOptimizer demo 40 km TT: 40.0 km, +381 m
-Finish     1:00:31  (avg 271 W = 97% CP, 39.7 km/h, 983 kJ)
-Reserves   W'bal 5.0 kJ (25%), glycogen 317 g at the finish
-Even pace  276 W constant meets the same reserves in 1:02:05 -> plan saves 94 s
+Finish     1:00:32  (avg 267 W = 95% CP, 39.7 km/h, 969 kJ)
+Reserves   W'bal 5.0 kJ (25%), glycogen 322 g at the finish
+Position   upright 2% of the time, 2 position changes (optimised; rounding to aero/upright cost 0.0 s)
+Even pace  273 W constant meets the same reserves in 1:02:05 -> plan saves 93 s
 
          km  grade  target  speed  wind  split  elapsed  Wbal  CHO  pos
+                 %       W   km/h   m/s                    kJ    g
 -----------------------------------------------------------------------
-  8.0- 10.0    4.4     300   20.1   3.0   5:59    18:49   3.5  439  climb
- 10.0- 12.0    1.9     285   27.3   3.0   4:24    23:13   1.0  423  mixed
+  8.0-  9.0    6.9     325   17.4   3.0   3:28    16:21   0.2  446  mixed
+  9.0- 10.0    2.0     240   24.2   3.0   2:29    18:49   4.0  441  aero
  ...
- 30.0- 32.0   -4.4     125   65.6  -3.0   1:50    50:26  12.1  349  aero
+ 30.0- 31.0   -2.0     215   58.4  -3.0   1:02    49:36   5.1  352  aero
 ```
 
 ## Quick start
@@ -211,6 +215,91 @@ Read these before trusting a number on race day.
 * **Finish-line coasting**: the kinetic energy at the line is free, so plans ease off
   in the final 100–200 m. Ignore that bit; for a triathlon it's your dismount anyway.
 * Not training or medical advice. Validate against your own power files.
+
+## Glossary
+
+### Physiology
+
+| term | meaning |
+|---|---|
+| **CP** (critical power) | The highest power you can sustain for a long time without steadily using up your anaerobic reserve. In practice it is close to what you can hold for 30–60 minutes. Measured in watts. In config: `cp`. |
+| **W′** ("W prime") | A fixed amount of work you can do *above* CP before you must slow down, like a battery for efforts harder than CP. Typically 10–30 kJ. Riding 50 W above CP for 200 s uses 10 kJ. In config: `w_prime` (joules). |
+| **W′₀** | Your full W′ when fresh, at the start. |
+| **W′bal** (W′ balance) | How much of the W′ battery is left at any moment. It drains above CP and recharges below CP; recharging is faster the further below CP you ride and the emptier the battery is. When it reaches 0 you can no longer ride above CP. |
+| **CHO** | Carbohydrate. Your muscles burn a mix of carbohydrate and fat; the harder you ride, the larger the carbohydrate share. |
+| **Glycogen** ($G$) | The carbohydrate stored in your muscles and liver, in grams (≈400–600 g). Running it low is "hitting the wall". In config: `glycogen` (start) and `glycogen_final` (what must be left at T2). |
+| **CHO intake** ($I_\text{CHO}$) | Carbohydrate you eat and drink *and absorb* while riding, in g/h (typically 60–120 g/h). It slows the fall of the glycogen store. In config: `cho_intake`. |
+| **CHO fraction** ($f_\text{CHO}$) | The share of your energy that comes from carbohydrate. It rises with intensity: low at easy power (mostly fat), close to 100% near CP. The curve's midpoint and steepness are `cho_crossover` and `cho_slope`. |
+| **Intensity** | Power relative to CP, $P/CP$. 0.75 means riding at 75% of CP. |
+| **GE** (gross efficiency) | The fraction of the energy your body burns that ends up as power at the pedals, typically 0.19–0.23. The rest becomes heat. In config: `gross_efficiency`. |
+| **Metabolic power** | The energy your body burns per second, $P / \text{GE}$. At 250 W and GE = 0.21, that's about 1190 W. |
+| **Durability** | How much your CP and W′ drop late in a long race. *Not modelled yet* (see Roadmap). |
+
+### Bike and physics
+
+| term | meaning |
+|---|---|
+| $P$ | Power at the pedals, in watts. It is the quantity the optimiser chooses. |
+| $v$ | Ground speed, in m/s (×3.6 for km/h). |
+| **CdA** | Drag area: drag coefficient × frontal area, in m². The single biggest factor in aerodynamic drag. Typically ≈0.20–0.25 on the aero bars and ≈0.28–0.35 seated upright. In config: `cda_aero`, `cda_climb`. |
+| **Crr** | Rolling resistance coefficient of tyres on the road, typically 0.003–0.005. In config: `crr`. |
+| $\eta$ (drivetrain efficiency) | The share of pedal power that reaches the rear wheel after chain and bearing losses (≈0.97–0.98). In config: `drivetrain_efficiency`. |
+| $\rho$ (air density) | Mass of air per m³ (≈1.2 kg/m³ at sea level). Lower at altitude and in heat, which means less drag. |
+| $m$, $m_\text{eff}$ | Rider + bike mass, and the *effective* mass that adds wheel inertia (spinning wheels up costs extra energy). In config: `rider_mass`, `bike_mass`, `rotating_mass`. |
+| $\theta$, grade | Road slope. Grade = rise / run, so 5% means 5 m up per 100 m. |
+| $\psi$ (heading) | Direction of travel, in degrees clockwise from north. |
+| **Head wind** ($w$) | The part of the wind blowing against your direction of travel. Negative means a tailwind. |
+| `wind_height_factor` | Forecasts give wind at 10 m height; near the ground, where you ride, it is weaker. This factor (≈0.5–0.7) scales it down. |
+| **Yaw** | The angle between the air you feel and your direction of travel when there is crosswind. Real CdA changes with yaw; *not modelled yet*. |
+| $F_\text{brake}$ | Braking force, used only where speed limits require it. |
+| $a_\text{lat}$, $r$ | Sideways acceleration you accept in corners, and the corner radius. Cornering speed is limited to $\sqrt{a_\text{lat}\, r}$. In config: `lateral_accel`. |
+| $v_\text{max}$ | Absolute speed cap, e.g. for safety on descents. In config: `max_speed`. |
+
+### Race and plan
+
+| term | meaning |
+|---|---|
+| **TT** | Time trial: a solo race against the clock. |
+| **T1 / T2** | Triathlon transitions: swim→bike (T1) and bike→run (T2). The bike plan ends at T2. |
+| **Reserves** | What you must still have at the end of the bike: `w_prime_final` (fraction of W′) and `glycogen_final` (grams). Higher reserves mean a slower bike but a better run. |
+| **Aero / upright position** | Aero: on the aero bars, low drag. Upright: hands on the base bar, more drag but usually more sustainable power and better handling. |
+| `aero_cp_factor` ($f_\text{aero}$) | Your CP on the aero bars as a fraction of your upright CP (default 0.96). This trade-off is what makes sitting up worthwhile on slow climbs. |
+| **Even pace** | Riding one constant power the whole way. The comparison uses the highest constant power that still meets your reserves. |
+| **Split** | A chunk of the course in the output table (1 km by default; `--split`). |
+| **Step** | One block of the exported workout: a distance and a power band, e.g. "3.20 km at 286–296 W". |
+| **Target band** | The power range shown for a step, the target ±5 W. |
+
+**Reading the output table:** `km` = split start–end · `grade` = average slope (%) · `target` = power to ride (W) · `speed` = average speed (km/h) · `wind` = average head wind (m/s, negative = tailwind) · `split` = time for this split · `elapsed` = race time at the end of the split · `Wbal` = W′ left (kJ) · `CHO` = glycogen left (g) · `pos` = aero, upright (`climb`) or `mixed`.
+
+### Maths and solver
+
+| term | meaning |
+|---|---|
+| **Optimal control** | Choosing an input that varies over time or distance (here: power) to minimise a cost (here: finish time) while obeying equations of motion and limits. |
+| **State** | The quantities that evolve along the course and that the input influences: speed, W′bal, glycogen and elapsed time. |
+| **Direct collocation** | Solving optimal control by cutting the course into segments, making every segment's power and state an unknown, and requiring the physics to hold on each segment. This turns the problem into one large but well-structured optimisation. |
+| **Trapezoidal rule** | The way physics is enforced on each segment: using the average of the values at its two ends. |
+| **NLP** | Nonlinear program: an optimisation problem with nonlinear equations and limits, which is what collocation produces. |
+| **IPOPT** | The open-source solver that solves the NLP (interior-point method). |
+| **CasADi** | The open-source library used to formulate the NLP and pass it to IPOPT, with automatic derivatives. |
+| **PMP** (Pontryagin's Maximum Principle) | The classical, "indirect" theory of optimal control. It gives optimality conditions using **costates**: the marginal value of each state, e.g. how many seconds one more kJ of W′ is worth at a given point. |
+| **Boundary arc** | A stretch where a limit is active the whole time, e.g. W′bal held at 0. |
+| **Singular arc** | A stretch where the optimal input isn't at a limit and isn't pinned by the usual conditions. Here: riding exactly at CP with W′bal at 0. Numerically delicate. |
+| $e^+$, $e^-$ | Power above CP and below CP. They are split into two non-negative parts so the W′ model switches exactly at CP without approximation. |
+| **Relaxation** | Temporarily treating the aero/upright choice as a number between 0 and 1 so it can be optimised smoothly; it is then rounded back to aero or upright. |
+| **Fixed-point loop** | Repeating "solve → update inputs that depend on the solution (wind timing) → solve again" until nothing changes. |
+| **Warm start** | Starting the solver from a good guess, here a simulation of the previous solution, so it converges quickly. |
+
+### Files and tools
+
+| term | meaning |
+|---|---|
+| **GPX** | A common text format for GPS routes and tracks (latitude, longitude, elevation). |
+| **FIT** | Garmin's binary format for activities, courses and workouts. Reading .fit courses needs `pip install 'wattoptimizer[fit]'`. |
+| **TOML** | The simple text format of the config file (`examples/athlete.toml`). |
+| **Open-Meteo** | A free weather service (no API key) used for wind and temperature forecasts and for historical weather. |
+| **intervals.icu** | A training platform that stores planned workouts and syncs them to Garmin, Wahoo and others. |
+| **Connect IQ** | Garmin's platform for apps and data fields on its devices. |
 
 ## Roadmap
 
