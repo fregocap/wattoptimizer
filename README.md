@@ -124,9 +124,7 @@ $\psi_k$.
 direction of travel (head wind $w = -\vec W\cdot\hat\tau$, scaled from 10 m to rider height),
 
 $$
-m_\text{eff}\, v \frac{dv}{ds} = \frac{\eta P}{v}
-  - \tfrac12 \rho(z)\, C_dA\, (v + w)\,|v + w|
-  - m g\,(C_{rr}\cos\theta + \sin\theta) - F_\text{brake}
+m_\text{eff}\, v \frac{dv}{ds} = \frac{\eta P}{v} - \tfrac12 \rho(z)\, C_dA\, (v + w)\,|v + w|- m g\,(C_{rr}\cos\theta + \sin\theta) - F_\text{brake}
 $$
 
 $\rho$ follows the barometric formula at the course elevation and the race temperature.
