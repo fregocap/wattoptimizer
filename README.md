@@ -100,10 +100,13 @@ wattopt serve
 ```
 
 and a page opens at http://127.0.0.1:8765. Drop your .gpx or .fit course on it,
-fill in your numbers and press **Make my plan**. You get the chart, the workout steps
-and a **Push to Coros / bike computer** button that uploads the steps to intervals.icu
-(and from there to your Coros, Garmin or Wahoo). The page runs on your computer only;
-your API key goes nowhere except intervals.icu.
+fill in your numbers and press **Make my plan**. You get a map of the course coloured
+by power, riding position or wind (hover it and the chart follows), the chart, the
+workout steps and a **Push to Coros / bike computer** button that uploads the steps to
+intervals.icu (and from there to your Coros, Garmin or Wahoo). The page runs on your
+computer only; your API key goes nowhere except intervals.icu. The map loads Leaflet
+from cdnjs and its background tiles from OpenStreetMap, so those servers see which area
+you're looking at; without internet the map is simply left out.
 
 **If something goes wrong**
 

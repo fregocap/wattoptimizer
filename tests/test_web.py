@@ -47,6 +47,8 @@ def test_plan_then_push(server, tmp_path):
     assert status == 200, plan
     assert plan["feasible"] and len(plan["steps"]) == 8
     assert len(plan["series"]["km"]) == len(plan["series"]["power"]) + 1
+    assert len(plan["series"]["lat"]) == len(plan["series"]["km"])
+    assert len(plan["series"]["upright"]) == len(plan["series"]["head_wind"]) == len(plan["series"]["power"])
     assert plan["stepped_s"] >= plan["finish_s"] - 1.0
 
     sent = {}

@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WattOptimizer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
   color-scheme: light;
@@ -107,6 +109,29 @@ th:last-child, td:last-child { text-align: left; }
 pre { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; overflow-x: auto; margin: 0; }
 details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin-top: 12px; }
 .hidden { display: none !important; }
+.cardhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.cardhead h2 { margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; color: var(--text-2); border-radius: 0; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--band); color: var(--text); font-weight: 600; }
+#map { height: 420px; border-radius: 8px; border: 1px solid var(--border); background: var(--band); }
+@media (max-width: 600px) { #map { height: 320px; } }
+.leaflet-container { font: inherit; }
+/* mute the busy OSM tiles so the route stands out; invert them in dark mode */
+.leaflet-tile-pane { filter: grayscale(1) contrast(.9) brightness(1.05) opacity(.75); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.85) contrast(.85) opacity(.8); }
+}
+:root[data-theme="dark"] .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.85) contrast(.85) opacity(.8); }
+.leaflet-tooltip { background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: 0 2px 8px rgb(0 0 0 / .12); font-size: 12px; font-variant-numeric: tabular-nums; }
+.leaflet-tooltip-top:before { border-top-color: var(--border); }
+.leaflet-bar a { background: var(--card); color: var(--text); border-color: var(--border); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--card) 80%, transparent) !important; color: var(--text-3); }
+.leaflet-control-attribution a { color: var(--text-2); }
+.pin { background: var(--text); color: var(--card); border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; transform: translate(-50%, -130%); display: inline-block; }
+.maplegend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); margin-top: 8px; }
+.maplegend i { display: inline-block; width: 16px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: -2px; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -168,6 +193,20 @@ details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin
 
   <section id="results" class="hidden">
     <div id="tiles" class="tiles"></div>
+
+    <div class="card">
+      <div class="cardhead">
+        <h2>Course map</h2>
+        <div class="seg" role="group" aria-label="Colour the route by">
+          <button type="button" data-mode="power" aria-pressed="true">Power</button>
+          <button type="button" data-mode="position" aria-pressed="false">Position</button>
+          <button type="button" data-mode="wind" aria-pressed="false">Wind</button>
+        </div>
+      </div>
+      <div id="map" role="region" aria-label="Map of the course coloured by the plan"></div>
+      <div id="mapLegend" class="maplegend"></div>
+      <p id="mapNote" class="hint hidden">The map needs an internet connection (Leaflet and map tiles load from the web). Everything else works offline.</p>
+    </div>
 
     <div class="card">
       <h2 id="chartTitle">Plan</h2>
@@ -318,6 +357,7 @@ details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin
     $("chartTitle").textContent = p.name;
     $("summary").textContent = p.summary;
     drawChart(p.series);
+    drawMap(p);
 
     $("stepsTable").innerHTML = "<tr><th>#</th><th>From km</th><th>To km</th><th>Length</th><th>Target</th><th>Position</th></tr>" +
       p.steps.map((s, i) => `<tr><td>${i + 1}</td><td>${s.start_km.toFixed(1)}</td><td>${s.end_km.toFixed(1)}</td>` +
@@ -415,7 +455,11 @@ details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin
 
     const move = (clientX) => {
       const r = svg.getBoundingClientRect(), sx = ((clientX - r.left) / r.width) * W;
-      const v = Math.min(Math.max((sx - padL) / plotW * xMax, 0), xMax);
+      showAt(Math.min(Math.max((sx - padL) / plotW * xMax, 0), xMax), true);
+    };
+    // fromChart: the pointer is on the chart, so also move the map marker
+    const showAt = (v, fromChart) => {
+      const r = svg.getBoundingClientRect();
       let i = 0; while (i < n - 1 && km[i + 1] < v) i++;
       const node = Math.abs(km[i + 1] - v) < Math.abs(km[i] - v) ? i + 1 : i;
       const X = x(v);
@@ -433,16 +477,132 @@ details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin
       const px = (X / W) * r.width, tw = tip.offsetWidth;
       tip.style.left = `${Math.min(Math.max(px + 12, 0), r.width - tw)}px`;
       tip.style.top = `${(scales[1].top / H) * r.height}px`;
+      if (fromChart) mapShow(node, i);
     };
-    const leave = () => {
+    const leave = (fromChart = true) => {
       tip.style.display = "none"; cross.setAttribute("visibility", "hidden");
       dots.forEach((c) => c.setAttribute("visibility", "hidden"));
+      if (fromChart) mapHide();
     };
+    chartLink = { showAt: (v) => showAt(v, false), leave: () => leave(false) };
     hit.addEventListener("mousemove", (e) => move(e.clientX));
     hit.addEventListener("touchmove", (e) => { move(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
-    hit.addEventListener("mouseleave", leave);
-    hit.addEventListener("touchend", leave);
+    hit.addEventListener("mouseleave", () => leave());
+    hit.addEventListener("touchend", () => leave());
   }
+
+  // ---- map: the route coloured by power, position or wind, linked to the chart ----
+  let chartLink = { showAt() {}, leave() {} };
+  let map = null, tileLayer = null, routeLayer = null, stepLayer = null, hoverMarker = null, mapMode = "power";
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const isDark = () => css("color-scheme") === "dark";
+  // sequential blue, light → dark for more power (reversed on the dark basemap so "more" stays more contrast)
+  const POWER_RAMP = { light: ["#9ec5f4", "#6aa6ec", "#2a78d6", "#1d5aa8", "#123b73"],
+                       dark: ["#1d4f8f", "#2a6cc0", "#3987e5", "#7fb2f0", "#c3dbf8"] };
+  const POWER_BINS = [0.55, 0.75, 0.9, 1.05];  // fractions of CP
+  const WIND_BINS = [-2, -0.5, 0.5, 2];  // head wind m/s; negative is a tailwind
+  const binOf = (v, edges) => { let b = 0; while (b < edges.length && v >= edges[b]) b++; return b; };
+
+  function colourScheme(p) {
+    const s = p.series, dark = isDark();
+    if (mapMode === "position") {
+      const c = [css("--series-1"), css("--series-2")];
+      return { colour: (i) => c[s.upright[i] ? 1 : 0], legend: [[c[0], "Aero"], [c[1], "Sit up"]] };
+    }
+    if (mapMode === "wind") {
+      // diverging: tailwind blue, calm neutral, headwind orange
+      const c = dark ? ["#3987e5", "#86a9d4", "#77766f", "#e0956f", "#d95926"]
+                     : ["#2a78d6", "#8fb3e0", "#a8a7a1", "#f0a582", "#eb6834"];
+      const names = ["Tailwind > 2 m/s", "Light tailwind", "About calm", "Light headwind", "Headwind > 2 m/s"];
+      return { colour: (i) => c[binOf(s.head_wind[i], WIND_BINS)], legend: c.map((x, k) => [x, names[k]]) };
+    }
+    const ramp = POWER_RAMP[dark ? "dark" : "light"];
+    const cp = s.cp.reduce((a, b) => a + b, 0) / s.cp.length;
+    const w = POWER_BINS.map((f) => Math.round(f * cp));
+    const names = [`< ${w[0]} W`, `${w[0]}–${w[1]} W`, `${w[1]}–${w[2]} W`, `${w[2]}–${w[3]} W`, `> ${w[3]} W (above CP)`];
+    return { colour: (i) => ramp[binOf(s.stepped[i] / s.cp[i], POWER_BINS)], legend: ramp.map((x, k) => [x, names[k]]) };
+  }
+
+  function drawMap(p) {
+    if (!window.L) { $("map").classList.add("hidden"); $("mapNote").classList.remove("hidden"); return; }
+    const s = p.series;
+    if (!map) {
+      map = L.map("map", { preferCanvas: true, scrollWheelZoom: false });
+      map.on("mousemove", (e) => mapHover(e.latlng));
+      map.on("mouseout", () => { mapHide(); chartLink.leave(); });
+    }
+    if (tileLayer) tileLayer.remove();
+    tileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    if (routeLayer) routeLayer.remove();
+    routeLayer = L.layerGroup().addTo(map);
+    const { colour, legend } = colourScheme(p);
+    const n = s.lat.length - 1, ll = (i) => [s.lat[i], s.lon[i]];
+    // a thin surface-coloured casing keeps the route readable over any tile
+    L.polyline(s.lat.map((_, i) => ll(i)), { color: css("--card"), weight: 7, opacity: 0.9, interactive: false }).addTo(routeLayer);
+    // join consecutive segments of the same colour into one polyline
+    let start = 0;
+    for (let i = 1; i <= n; i++) {
+      if (i === n || colour(i) !== colour(start)) {
+        const pts = []; for (let k = start; k <= i; k++) pts.push(ll(k));
+        L.polyline(pts, { color: colour(start), weight: 4, opacity: 1, lineCap: "round", interactive: false }).addTo(routeLayer);
+        start = i;
+      }
+    }
+
+    if (stepLayer) stepLayer.remove();
+    stepLayer = L.layerGroup().addTo(map);
+    const nodeAt = (kmv) => { let i = 0; while (i < n && s.km[i] < kmv - 1e-6) i++; return i; };
+    p.steps.forEach((st, k) => {
+      const i = nodeAt(st.start_km);
+      L.circleMarker(ll(i), { radius: 5, color: css("--text"), weight: 2, fillColor: css("--card"), fillOpacity: 1 })
+        .bindTooltip(`<b>Step ${k + 1}</b> · ${st.low}–${st.high} W${st.upright ? " · sit up" : ""}<br>km ${st.start_km.toFixed(1)}–${st.end_km.toFixed(1)}`, { direction: "top", offset: [0, -6] })
+        .addTo(stepLayer);
+    });
+    const pin = (i, text) => L.marker(ll(i), { icon: L.divIcon({ className: "", html: `<span class="pin">${text}</span>`, iconSize: [0, 0] }), interactive: false }).addTo(stepLayer);
+    const loop = map.distance(ll(0), ll(n)) < 150;
+    pin(0, loop ? "Start · T2" : "Start");
+    if (!loop) pin(n, "T2");
+
+    if (!hoverMarker) hoverMarker = L.circleMarker([0, 0], { radius: 7, color: css("--card"), weight: 2.5, fillColor: css("--accent"), fillOpacity: 1, interactive: false });
+    $("mapLegend").innerHTML = legend.map(([c, t]) => `<span><i style="background:${c}"></i>${escapeHtml(t)}</span>`).join("");
+    map.invalidateSize();
+    map.fitBounds(L.latLngBounds(s.lat.map((_, i) => ll(i))), { padding: [20, 20] });
+  }
+
+  function mapShow(node, seg) {
+    if (!map || !plan) return;
+    const s = plan.series;
+    hoverMarker.setLatLng([s.lat[node], s.lon[node]]).addTo(map);
+    const hw = s.head_wind[seg];
+    hoverMarker.bindTooltip(`<b>km ${s.km[node].toFixed(1)}</b> · step ${s.stepped[seg]} W · ${s.upright[seg] ? "sit up" : "aero"}<br>` +
+      `${s.speed[node]} km/h · ${Math.abs(hw) < 0.5 ? "about calm" : `${Math.abs(hw)} m/s ${hw > 0 ? "head" : "tail"}wind`}`,
+      { direction: "top", offset: [0, -8] }).openTooltip();
+  }
+  function mapHide() { if (hoverMarker && map) hoverMarker.remove(); }
+  // pointer on the map: snap to the nearest point of the route if it's close
+  function mapHover(latlng) {
+    const s = plan.series, p0 = map.latLngToContainerPoint(latlng);
+    let best = -1, bestD = 20 * 20;
+    for (let i = 0; i < s.lat.length; i++) {
+      const q = map.latLngToContainerPoint([s.lat[i], s.lon[i]]), d = (q.x - p0.x) ** 2 + (q.y - p0.y) ** 2;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (best < 0) { mapHide(); chartLink.leave(); return; }
+    const seg = Math.min(best, s.lat.length - 2);
+    mapShow(best, seg);
+    chartLink.showAt(s.km[best]);
+  }
+
+  document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+    mapMode = b.dataset.mode;
+    document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    if (plan) drawMap(plan);
+  }));
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => plan && drawMap(plan));
   let resizeTimer;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => plan && drawChart(plan.series), 150); });
 

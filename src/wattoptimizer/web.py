@@ -114,6 +114,11 @@ def make_plan(body: dict) -> dict:
             "speed": _round(3.6 * plan.speed, 1),
             "w_bal": _round(plan.w_bal / 1000.0, 2),
             "glycogen": _round(plan.glycogen, 0),
+            # for the map: node coordinates, then per-segment position and wind
+            "lat": _round(course.lat, 5),
+            "lon": _round(course.lon, 5),
+            "upright": [bool(c) for c in plan.climbing],
+            "head_wind": _round(plan.head_wind, 1),
         },
         "steps": [
             {"start_km": s.start_m / 1000, "end_km": s.end_m / 1000, "low": s.low_w, "high": s.high_w,
