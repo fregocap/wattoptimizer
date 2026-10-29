@@ -103,6 +103,8 @@ def make_plan(body: dict) -> dict:
         "avg_w": plan.avg_power,
         "distance_km": course.total_distance / 1000.0,
         "gain_m": course.elevation_gain,
+        "cp_w": athlete.cp,
+        "targets": {"w_bal_kj": race.w_prime_final * athlete.w_prime / 1000.0, "glycogen": race.glycogen_final},
         "feasible": bool(check.feasible),
         "offset_w": check.offset_w,
         "series": {
