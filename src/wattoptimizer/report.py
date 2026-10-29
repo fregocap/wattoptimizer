@@ -95,8 +95,20 @@ def summary(plan: Plan, baseline: tuple[float, SimResult] | None = None) -> str:
     changes = int(np.count_nonzero(np.diff(plan.climbing.astype(np.int8))))
     position = f"upright {(t * plan.climbing).sum() / plan.total_time:.0%} of the time, {changes} position changes"
     if plan.relaxed_time is not None:
-        position += f" (optimised; rounding to aero/upright cost {plan.total_time - plan.relaxed_time:.1f} s)"
+        rounding = plan.total_time - plan.relaxed_time
+        # a negative value only means the relaxed solve stopped at a slightly worse local optimum
+        position += f" (optimised; rounding to aero/upright cost {rounding:.1f} s)" if rounding > 0.05 else " (optimised)"
     lines.append(f"Position   {position}")
+    if a.durability_enabled and plan.work_counted is not None:
+        from . import physiology
+
+        work = plan.work_counted[-1]
+        cp_end = a.cp * physiology.cp_factor(work, a)
+        w_end = a.w_prime * physiology.w_prime_factor(work, a)
+        lines.append(
+            f"Durability {work / 1000:.0f} kJ counted: CP {a.cp:.0f} -> {cp_end:.0f} W ({cp_end / a.cp - 1:+.0%}), "
+            f"W' {a.w_prime / 1000:.1f} -> {w_end / 1000:.1f} kJ by the finish"
+        )
     if baseline is not None:
         power, sim = baseline
         saved = sim.total_time - plan.total_time

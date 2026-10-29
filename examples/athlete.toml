@@ -13,6 +13,14 @@ crr = 0.004
 glycogen = 500.0         # g at the start
 cho_intake = 80.0        # g/h absorbed on the bike
 
+# Durability: CP and W' decline once enough work has been done. These values are
+# illustrative, not measured; set the decays to 0 to switch it off. A 40 km TT does
+# about 1000 kJ, so it only matters for long races here.
+durability_onset = 1500.0           # kJ of work before the decline starts
+durability_cp_decay = 0.05          # CP falls 5% per further 1000 kJ
+durability_w_prime_decay = 0.10     # W' falls 10% per further 1000 kJ
+durability_power_threshold = 0.0    # W; only work above this power counts (0 = all work)
+
 [race]
 # start_time = 2026-07-12T07:30:00+02:00   # needed for --weather
 start_speed = 5.0        # m/s at the mount line

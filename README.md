@@ -150,6 +150,24 @@ $$
 \frac{dG}{dt} = I_\text{CHO} - \frac{f_\text{CHO}(P/CP)\; P}{\text{GE}\cdot 16.7\ \text{kJ/g}}
 $$
 
+**Durability** (optional). Long races wear you down: CP and W′ decline once you have done
+enough work. A work counter $E$ accumulates the work done (or only the part above a power
+threshold $P_\text{thr}$), and past an onset $E_0$ both decline linearly:
+
+$$
+\frac{dE}{dt} = \max(P - P_\text{thr},\, 0), \qquad
+D(E) = 1 - k\,\frac{\max(E - E_0,\, 0)}{1000\ \text{kJ}}
+$$
+
+$$
+CP(E) = CP \cdot D_{CP}(E), \qquad W'_\text{cap}(E) = W'_0 \cdot D_{W'}(E)
+$$
+
+Capacity lost to durability is lost from the balance too, so a fully recovered rider stays
+fully recovered but holds less. Carbohydrate use is driven by intensity relative to the
+*current* CP, so late in the race the same watts burn more carbohydrate. This is usually
+the bigger effect in Ironman pacing, where glycogen rather than CP is the limit.
+
 **Optimal control problem.**
 
 $$
@@ -244,6 +262,9 @@ Everything lives in a TOML file with `[athlete]` and `[race]` tables; see
 | `position_mode` | `"optimize"` (default) or `"rules"` (`climb_grade` / `aero_min_speed` thresholds) |
 | `min_position_run` | shortest stint in one position, in metres |
 | `aero_cp_factor` (athlete) | CP on the aero bars relative to upright. This drives the position choice: at 1.0 you never sit up |
+| `durability_onset` (athlete) | kJ of work before CP and W′ start to decline |
+| `durability_cp_decay`, `durability_w_prime_decay` (athlete) | fraction lost per further 1000 kJ; both 0 (default) switches durability off |
+| `durability_power_threshold` (athlete) | only work above this power counts towards the onset (W); 0 counts all work |
 | `lateral_accel`, `max_speed` | cornering limit $v^2/r$ and absolute speed cap |
 | `wind_height_factor` | rider-height wind / 10 m forecast wind (log-law, ~0.5–0.7) |
 
@@ -251,9 +272,16 @@ Everything lives in a TOML file with `[athlete]` and `[race]` tables; see
 
 Read these before trusting a number on race day.
 
-* **CP/W′ is a two-parameter model.** It says CP is sustainable indefinitely, so the
-  **glycogen constraint is what makes long-course (70.3/Ironman) pacing realistic**. Set
-  `glycogen_final` deliberately. Durability (CP decay with accumulated work) is not modelled yet.
+* **CP/W′ is a two-parameter model.** Without durability it says CP is sustainable
+  indefinitely, so the **glycogen constraint is what makes long-course (70.3/Ironman) pacing
+  realistic**. Set `glycogen_final` deliberately.
+* **Durability is off by default, and its example values are illustrative.** Published
+  durability data vary hugely between athletes. Calibrate from your own long rides, for
+  example by comparing your best 20 min power fresh with the same effort after 2000–3000 kJ.
+  With durability on, plans tend to hold back early (a negative split), because early work
+  brings the decline forward for the rest of the race.
+* **Plans are local optima.** The problem is not convex, so two closely related setups can
+  differ by a second or so for numerical reasons. Treat differences of a few seconds as noise.
 * **W′bal recovery is fast in this model.** Optimal plans drain W′ to zero before
   every crest and recover on the descents. That matches the model, but real
   repeatability is lower, so consider raising `w_prime_final` or using a smaller W′.
@@ -287,7 +315,8 @@ Read these before trusting a number on race day.
 | **Intensity** | Power relative to CP, $P/CP$. 0.75 means riding at 75% of CP. |
 | **GE** (gross efficiency) | The fraction of the energy your body burns that ends up as power at the pedals, typically 0.19–0.23. The rest becomes heat. In config: `gross_efficiency`. |
 | **Metabolic power** | The energy your body burns per second, $P / \text{GE}$. At 250 W and GE = 0.21, that's about 1190 W. |
-| **Durability** | How much your CP and W′ drop late in a long race. *Not modelled yet* (see Roadmap). |
+| **Durability** | How well you hold your CP and W′ late in a long race. Modelled as a linear decline once your counted work passes an onset (`durability_*` settings). Off by default. |
+| **Counted work** ($E$) | The work done so far that counts towards durability, in kJ: all work, or only the part above `durability_power_threshold`. |
 
 ### Bike and physics
 
@@ -330,7 +359,7 @@ Read these before trusting a number on race day.
 | term | meaning |
 |---|---|
 | **Optimal control** | Choosing an input that varies over time or distance (here: power) to minimise a cost (here: finish time) while obeying equations of motion and limits. |
-| **State** | The quantities that evolve along the course and that the input influences: speed, W′bal, glycogen and elapsed time. |
+| **State** | The quantities that evolve along the course and that the input influences: speed, W′bal, glycogen, elapsed time and counted work. |
 | **Direct collocation** | Solving optimal control by cutting the course into segments, making every segment's power and state an unknown, and requiring the physics to hold on each segment. This turns the problem into one large but well-structured optimisation. |
 | **Trapezoidal rule** | The way physics is enforced on each segment: using the average of the values at its two ends. |
 | **NLP** | Nonlinear program: an optimisation problem with nonlinear equations and limits, which is what collocation produces. |
@@ -361,7 +390,8 @@ Contributions are welcome. Good first big items:
 
 - [x] Optimise the riding position (relaxation + rounding); next: exact MINLP / branch-and-bound
 - [ ] Yaw-dependent $C_dA(\beta)$ using the crosswind component
-- [ ] Durability: CP/W′ decaying with accumulated kJ above a threshold
+- [x] Durability: CP/W′ decaying with accumulated work, coupled to carbohydrate use
+- [ ] Durability: gross efficiency falling with fatigue, and fitting the durability settings from .fit files
 - [ ] Run leg: couple bike reserves to a running power/pace model for full-race optimisation
 - [ ] Stochastic wind: optimise expected time over an ensemble forecast
 - [x] Export to intervals.icu (distance-based steps, verified round-trip)

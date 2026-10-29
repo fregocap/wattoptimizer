@@ -41,8 +41,10 @@ def plot_plan(plan: Plan, path: str | Path) -> None:
     for start, end in _runs(plan.climbing):
         watts.axvspan(km[start], km[end], color=CLIMB_BAND, lw=0, zorder=0)
     watts.plot(seg_km, power, color=SERIES, lw=2)
-    watts.axhline(plan.athlete.cp, color=INK_SECONDARY, lw=1, ls=(0, (4, 3)))
-    watts.annotate("CP", (km[-1], plan.athlete.cp), xytext=(4, 0), textcoords="offset points",
+    # CP as ridden: lower on the aero bars, and declining with durability
+    cp = np.repeat(plan.cp_effective, 2)
+    watts.plot(seg_km, cp, color=INK_SECONDARY, lw=1, ls=(0, (4, 3)))
+    watts.annotate("CP", (km[-1], cp[-1]), xytext=(4, 0), textcoords="offset points",
                    va="center", color=INK_SECONDARY, fontsize=9)
     watts.set_ylabel("target power [W]")
     if plan.climbing.any():

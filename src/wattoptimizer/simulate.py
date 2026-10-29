@@ -20,6 +20,8 @@ class SimResult:
     glycogen: np.ndarray  # nodes [g]
     brake_force: np.ndarray  # segments [N]
     stalled: bool  # the rider could not keep moving at some point
+    work_counted: np.ndarray  # nodes [J], the durability work counter
+    cp_effective: np.ndarray  # segments [W], CP after position and durability
 
     @property
     def total_time(self) -> float:
@@ -40,7 +42,9 @@ def simulate(
 ) -> SimResult:
     """Ride ``power`` (one value per segment) over the course.
 
-    Where the speed would exceed ``v_max`` the rider brakes just enough to hold it.
+    ``cp`` is the fresh CP of each segment (it depends on the riding position);
+    durability is applied on top. Where the speed would exceed ``v_max`` the rider
+    brakes just enough to hold it.
     """
     n = course.n
     power = np.broadcast_to(np.asarray(power, dtype=float), (n,))
@@ -56,6 +60,8 @@ def simulate(
     w = np.empty(n + 1)
     g = np.empty(n + 1)
     brake = np.zeros(n)
+    work = np.zeros(n + 1)
+    cp_eff = np.empty(n)
     v[0], w[0], g[0] = min(race.start_speed, v_max[0]), w0, athlete.glycogen
     stalled = False
 
@@ -75,14 +81,21 @@ def simulate(
 
         dt = 2.0 * seg.length / (v[k] + v[k + 1])
         t[k + 1] = t[k] + dt
-        # implicit midpoint for W'bal: the rate is affine in the end value, so solve exactly
-        excess, deficit = max(power[k] - cp[k], 0.0), max(cp[k] - power[k], 0.0)
-        w[k + 1] = (w[k] + dt * physiology.w_prime_rate(excess, deficit, 0.5 * w[k], w0)) / (
-            1.0 + dt * deficit / (2.0 * w0)
-        )
-        g[k + 1] = g[k] + dt * (athlete.cho_intake / 3600.0 - physiology.cho_oxidation(power[k], athlete))
+        work[k + 1] = work[k] + physiology.counted_work_rate(power[k], athlete) * dt
+        work_mid = 0.5 * (work[k] + work[k + 1])
+        cp_eff[k] = cp[k] * physiology.cp_factor(work_mid, athlete)
+        capacity = w0 * physiology.w_prime_factor(np.array([work[k], work_mid, work[k + 1]]), athlete)
+        # implicit midpoint for W'bal: the rate is affine in the end value, so solve exactly.
+        # Capacity lost to durability is lost from the balance too (capacity[2] - capacity[0]).
+        excess, deficit = max(power[k] - cp_eff[k], 0.0), max(cp_eff[k] - power[k], 0.0)
+        w[k + 1] = (
+            w[k] + dt * physiology.w_prime_rate(excess, deficit, 0.5 * w[k], capacity[1]) + capacity[2] - capacity[0]
+        ) / (1.0 + dt * deficit / (2.0 * capacity[1]))
+        cho = physiology.cho_oxidation(power[k], athlete, cp_factor=physiology.cp_factor(work_mid, athlete))
+        g[k + 1] = g[k] + dt * (athlete.cho_intake / 3600.0 - cho)
 
-    return SimResult(speed=v, time=t, w_bal=w, glycogen=g, brake_force=brake, stalled=stalled)
+    return SimResult(speed=v, time=t, w_bal=w, glycogen=g, brake_force=brake, stalled=stalled,
+                     work_counted=work, cp_effective=cp_eff)
 
 
 def meets_reserves(sim: SimResult, athlete: Athlete, race: RaceSpec, tol: float = 1e-6) -> bool:

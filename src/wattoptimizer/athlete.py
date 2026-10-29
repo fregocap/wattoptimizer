@@ -28,6 +28,11 @@ class Athlete:
     cho_crossover: float = 0.6  # intensity (P/CP) at the midpoint of the CHO-fraction curve
     cho_slope: float = 10.0  # steepness of the CHO-fraction curve
     rotating_mass: float = 1.0  # extra effective mass from wheel inertia [kg]
+    # durability: CP and W' decline once enough work has been done (off while the decays are 0)
+    durability_onset: float = 0.0  # counted work before the decline starts [kJ]
+    durability_cp_decay: float = 0.0  # fraction of CP lost per 1000 kJ beyond the onset
+    durability_w_prime_decay: float = 0.0  # fraction of W' lost per 1000 kJ beyond the onset
+    durability_power_threshold: float = 0.0  # only work above this power counts [W]; 0 counts all
 
     @property
     def mass(self) -> float:
@@ -36,6 +41,10 @@ class Athlete:
     @property
     def effective_mass(self) -> float:
         return self.mass + self.rotating_mass
+
+    @property
+    def durability_enabled(self) -> bool:
+        return self.durability_cp_decay > 0.0 or self.durability_w_prime_decay > 0.0
 
 
 @dataclass

@@ -3,12 +3,13 @@
 Distance s is the independent variable. On a grid of n segments the decision
 variables are
 
-    nodes:     speed v_k, W'bal w_k, glycogen g_k, elapsed time t_k
+    nodes:     speed v_k, W'bal w_k, glycogen g_k, elapsed time t_k, counted work E_k
     segments:  power P_k (the control u), brake force b_k, position a_k
 
-where a_k in [0, 1] blends the aero (0) and seated-upright (1) positions:
+where a_k in [0, 1] blends the aero (0) and seated-upright (1) positions, and
+durability D(E) (see physiology.durability_factor) scales CP and W' capacity:
 
-    CdA_k = CdA_aero + a_k (CdA_up - CdA_aero),   CP_k = CP (f_aero + a_k (1 - f_aero))
+    CdA_k = CdA_aero + a_k (CdA_up - CdA_aero),   CP_k = CP (f_aero + a_k (1 - f_aero)) D_cp(E)
 
 and the NLP is
 
@@ -81,6 +82,7 @@ class Plan:
     iterations: int
     converged: bool
     relaxed_time: float | None = None  # finish time with fractional positions, if optimised
+    work_counted: np.ndarray | None = None  # nodes [J], the durability work counter
 
     @property
     def total_time(self) -> float:
@@ -100,7 +102,16 @@ class Plan:
 
     @property
     def cp_segment(self) -> np.ndarray:
+        """Fresh CP of each segment for its riding position (before durability)."""
         return _cp_for(self.athlete, self.climbing)
+
+    @property
+    def cp_effective(self) -> np.ndarray:
+        """CP of each segment after position and durability."""
+        if self.work_counted is None:
+            return self.cp_segment
+        mid = 0.5 * (self.work_counted[:-1] + self.work_counted[1:])
+        return self.cp_segment * physiology.cp_factor(mid, self.athlete)
 
 
 def optimize(
@@ -127,7 +138,7 @@ def optimize(
         sim = simulate(course, athlete, race, power, head_wind=head, cda=_cda_for(athlete, climbing),
                        cp=_cp_for(athlete, climbing), v_max=vmax)
         return dict(v=sim.speed, p=power, w=np.maximum(sim.w_bal, 0.0), g=np.maximum(sim.glycogen, 0.0),
-                    t=sim.time, b=sim.brake_force, a=climbing.astype(float))
+                    t=sim.time, b=sim.brake_force, a=climbing.astype(float), e=sim.work_counted)
 
     # start from even power, ridden twice so the wind is sampled at roughly the right times
     guess = ride(np.full(course.n, _GUESS_INTENSITY * athlete.cp), np.zeros(course.n), climbing)
@@ -176,6 +187,7 @@ def optimize(
         iterations=iteration,
         converged=converged,
         relaxed_time=relaxed_time,
+        work_counted=sol["e"],
     )
 
 
@@ -194,19 +206,19 @@ def optimize_steps(plan: Plan, step_of: np.ndarray, options: SolverOptions | Non
     sim = simulate(course, athlete, race, power, head_wind=plan.head_wind, cda=plan.cda,
                    cp=plan.cp_segment, v_max=plan.v_max)
     guess = dict(v=sim.speed, p=power, w=np.maximum(sim.w_bal, 0.0), g=np.maximum(sim.glycogen, 0.0),
-                 t=sim.time, b=sim.brake_force, a=plan.climbing.astype(float))
+                 t=sim.time, b=sim.brake_force, a=plan.climbing.astype(float), e=sim.work_counted)
     nlp = _Nlp(physics.segment_params(course, athlete, race.temperature), plan.v_max, athlete, race, options,
                t_ref=plan.total_time, step_of=step_of)
     sol = nlp.solve(plan.head_wind, guess, plan.climbing)
     return replace(plan, power=sol["p"], speed=sol["v"], time=sol["t"], w_bal=sol["w"], glycogen=sol["g"],
-                   brake_force=sol["b"])
+                   brake_force=sol["b"], work_counted=sol["e"])
 
 
 class _Nlp:
     """The collocation NLP, built once and re-solved with updated parameters.
 
     Variables are scaled to O(1): power by CP, W'bal by W', glycogen by G_0,
-    time by a reference duration and brake force by body weight.
+    time by a reference duration, brake force by body weight and counted work by 1 MJ.
     """
 
     def __init__(self, sp, vmax, athlete: Athlete, race: RaceSpec, options: SolverOptions, t_ref: float,
@@ -225,7 +237,6 @@ class _Nlp:
         self.a = o.variable(n)
         self.a_lo, self.a_hi, self.head = o.parameter(n), o.parameter(n), o.parameter(n)
         cda = athlete.cda_aero + self.a * (athlete.cda_climb - athlete.cda_aero)
-        cp_rel = athlete.aero_cp_factor + self.a * (1.0 - athlete.aero_cp_factor)  # CP_k / CP
 
         csp = sp.as_casadi()
         power = athlete.cp * self.p
@@ -233,14 +244,39 @@ class _Nlp:
         dt = csp.length / (0.5 * (v0 + v1))
         w_mid = 0.5 * (self.w[:-1] + self.w[1:]) * w0
 
+        # durability: counted work E (in MJ) lowers CP and shrinks the W' capacity
+        self.e = o.variable(n + 1)
+        if athlete.durability_power_threshold > 0.0:
+            # only power above the threshold counts; split exactly like excess/deficit
+            self.above, self.below = o.variable(n), o.variable(n)
+            o.subject_to(self.p - athlete.durability_power_threshold / athlete.cp == self.above - self.below)
+            o.subject_to(self.above >= 0.0)
+            o.subject_to(self.below >= 0.0)
+            counted = athlete.cp * self.above
+            split_cost = ca.sum1(self.above + self.below)
+        else:
+            self.above = self.below = None
+            counted, split_cost = power, 0.0
+        o.subject_to(self.e[1:] - self.e[:-1] == counted * dt / 1e6)
+        o.subject_to(self.e[0] == 0.0)
+        e_mid = 0.5 * (self.e[:-1] + self.e[1:]) * 1e6
+        capacity = physiology.w_prime_factor(self.e * 1e6, athlete, xp=ca)  # W' capacity / W'0
+        capacity_mid = physiology.w_prime_factor(e_mid, athlete, xp=ca)
+        cp_rel = (athlete.aero_cp_factor + self.a * (1.0 - athlete.aero_cp_factor)) * physiology.cp_factor(
+            e_mid, athlete, xp=ca
+        )  # CP_k / CP
+
         o.subject_to(
             physics.energy_residual(v0, v1, power, self.head, cda, self.b * self.weight, csp, xp=ca)
             / sp.effective_mass == 0
         )
         o.subject_to(self.p - cp_rel == self.excess - self.deficit)
-        w_rate = physiology.w_prime_rate(athlete.cp * self.excess, athlete.cp * self.deficit, w_mid, w0)
-        o.subject_to(self.w[1:] - self.w[:-1] == w_rate * dt / w0)
-        cho_net = athlete.cho_intake / 3600.0 - physiology.cho_oxidation(power, athlete, xp=ca)
+        w_rate = physiology.w_prime_rate(athlete.cp * self.excess, athlete.cp * self.deficit, w_mid, w0 * capacity_mid)
+        # capacity lost to durability is lost from the balance too
+        o.subject_to(self.w[1:] - self.w[:-1] == w_rate * dt / w0 + capacity[1:] - capacity[:-1])
+        cho_net = athlete.cho_intake / 3600.0 - physiology.cho_oxidation(
+            power, athlete, xp=ca, cp_factor=physiology.cp_factor(e_mid, athlete, xp=ca)
+        )
         o.subject_to(self.g[1:] - self.g[:-1] == cho_net * dt / g0)
         o.subject_to(self.t[1:] - self.t[:-1] == dt / t_ref)
 
@@ -271,7 +307,7 @@ class _Nlp:
             self.t[-1]
             + options.smoothing * ca.sumsqr(dp) / n
             + 1e-3 * ca.sum1(self.b) / n
-            + _SPLIT_PENALTY * ca.sum1(self.excess + self.deficit) / n
+            + _SPLIT_PENALTY * (ca.sum1(self.excess + self.deficit) + split_cost) / n
             + _POSITION_PENALTY * ca.sumsqr(self.a[1:] - self.a[:-1]) / n
         )
         o.solver(
@@ -306,10 +342,16 @@ class _Nlp:
         o.set_initial(self.g, guess["g"] / a.glycogen)
         o.set_initial(self.t, guess["t"] / self.t_ref)
         o.set_initial(self.b, guess["b"] / self.weight)
-        cp_rel = a.aero_cp_factor + guess["a"] * (1.0 - a.aero_cp_factor)
+        o.set_initial(self.e, guess["e"] / 1e6)
+        e_mid = 0.5 * (guess["e"][:-1] + guess["e"][1:])
+        cp_rel = (a.aero_cp_factor + guess["a"] * (1.0 - a.aero_cp_factor)) * physiology.cp_factor(e_mid, a)
         rel = guess["p"] / a.cp - cp_rel
         o.set_initial(self.excess, np.maximum(rel, 0.0))
         o.set_initial(self.deficit, np.maximum(-rel, 0.0))
+        if self.above is not None:
+            rel = (guess["p"] - a.durability_power_threshold) / a.cp
+            o.set_initial(self.above, np.maximum(rel, 0.0))
+            o.set_initial(self.below, np.maximum(-rel, 0.0))
 
         try:
             result = o.solve()
@@ -333,6 +375,7 @@ class _Nlp:
             t=value(self.t) * self.t_ref,
             b=value(self.b) * self.weight,
             a=np.clip(value(self.a), 0.0, 1.0),
+            e=value(self.e) * 1e6,
         )
 
 
