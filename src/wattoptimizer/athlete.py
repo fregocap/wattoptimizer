@@ -25,8 +25,7 @@ class Athlete:
     gross_efficiency: float = 0.21  # mechanical power / metabolic power
     glycogen: float = 500.0  # carbohydrate store at the start, muscle + liver [g]
     cho_intake: float = 80.0  # carbohydrate absorbed while riding [g/h]
-    cho_crossover: float = 0.6  # intensity (P/CP) at the midpoint of the CHO-fraction curve
-    cho_slope: float = 10.0  # steepness of the CHO-fraction curve
+    cho_exponent: float = 1.5  # shape of the CHO-fraction curve, 0.1 + 0.9 * (P/CP)**n; higher burns less at easy power
     rotating_mass: float = 1.0  # extra effective mass from wheel inertia [kg]
     # durability: CP and W' decline once enough work has been done (off while the decays are 0)
     durability_onset: float = 0.0  # counted work before the decline starts [kJ]

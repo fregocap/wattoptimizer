@@ -67,17 +67,33 @@ def counted_work_rate(power, athlete: Athlete):
 
 
 def cho_fraction(power, athlete: Athlete, xp=np, cp_factor=1.0):
-    """Fraction of metabolic energy supplied by carbohydrate, a logistic 'crossover' curve in P/CP.
+    """Fraction of metabolic energy supplied by carbohydrate below CP, rising with intensity P/CP.
 
+    ``f = f_min + (1 - f_min) * (P/CP)**n`` with ``n = athlete.cho_exponent``, capped at 1.
     Intensity is relative to the *current* CP (``athlete.cp * cp_factor``), so once
     durability lowers CP the same watts burn a larger share of carbohydrate.
     """
-    intensity = power / (athlete.cp * cp_factor)
-    span = CHO_FRACTION_MAX - CHO_FRACTION_MIN
-    return CHO_FRACTION_MIN + span / (1.0 + xp.exp(-athlete.cho_slope * (intensity - athlete.cho_crossover)))
+    intensity = xp.fmin(xp.fmax(power / (athlete.cp * cp_factor), 0.0), 1.0)
+    return CHO_FRACTION_MIN + (CHO_FRACTION_MAX - CHO_FRACTION_MIN) * intensity**athlete.cho_exponent
 
 
 def cho_oxidation(power, athlete: Athlete, xp=np, cp_factor=1.0):
-    """Carbohydrate oxidation rate [g/s] at mechanical power ``power`` (see :func:`cho_fraction`)."""
-    metabolic = power / athlete.gross_efficiency
-    return cho_fraction(power, athlete, xp, cp_factor) * metabolic / CHO_ENERGY
+    """Carbohydrate oxidation rate [g/s] at mechanical power ``power``.
+
+    Below CP it is ``f_CHO(P/CP) * P / GE / 16.7 kJ/g`` (see :func:`cho_fraction`), a convex
+    function of power. Above CP the extra power comes largely from anaerobic glycolysis,
+    which gets far less energy out of each gram, so the rate carries on at its slope at
+    CP: each watt above CP costs ``f_min + (n + 1)(1 - f_min)`` (2.35 for n = 1.5) times
+    the carbohydrate of a fully aerobic watt. Keeping the whole curve convex matters:
+    with a curve that flattens out near CP, alternating easy and hard riding burns less
+    than riding steadily at the same average, and the optimiser would plan surges to
+    exploit it.
+    """
+    cp = athlete.cp * cp_factor
+    n = athlete.cho_exponent
+    span = CHO_FRACTION_MAX - CHO_FRACTION_MIN
+    x = power / cp
+    below = xp.fmin(xp.fmax(x, 0.0), 1.0)  # the solver may try slightly negative power
+    above = xp.fmax(x - 1.0, 0.0)
+    shape = CHO_FRACTION_MIN * below + span * below ** (n + 1.0) + (CHO_FRACTION_MIN + (n + 1.0) * span) * above
+    return shape * cp / athlete.gross_efficiency / CHO_ENERGY

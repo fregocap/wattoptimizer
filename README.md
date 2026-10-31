@@ -181,12 +181,20 @@ $$
 \frac{dW'}{dt} = -e^+ + e^-\,\frac{W'_0 - W'}{W'_0}
 $$
 
-**Carbohydrate store.** Metabolic power is $P / \text{GE}$; the fraction supplied by
-carbohydrate follows a logistic "crossover" curve in intensity $P/CP$:
+**Carbohydrate store.** Metabolic power is $P / \text{GE}$. Below CP the fraction supplied by
+carbohydrate rises with intensity $x = P/CP$ as $f_\text{CHO}(x) = 0.1 + 0.9\,x^n$
+(`cho_exponent` $n$, default 1.5); above CP the burn continues at its slope at CP, because
+the extra power comes largely from anaerobic glycolysis, which gets far less energy out of
+each gram:
 
 $$
-\frac{dG}{dt} = I_\text{CHO} - \frac{f_\text{CHO}(P/CP)\; P}{\text{GE}\cdot 16.7\ \text{kJ/g}}
+\frac{dG}{dt} = I_\text{CHO} - \frac{CP}{\text{GE}\cdot 16.7\ \text{kJ/g}}\; c(x), \qquad
+c(x) = \begin{cases} f_\text{CHO}(x)\,x & x \le 1 \\ 1 + \big(0.1 + 0.9\,(n+1)\big)(x - 1) & x > 1 \end{cases}
 $$
+
+$c$ is convex, so for the same average power a steady effort never burns more carbohydrate
+than an alternating easy/hard one. With a curve that flattens out near CP (as an S-shaped
+"crossover" curve does) the optimiser would plan surges to save glycogen.
 
 **Durability** (optional). Long races wear you down: CP and W′ decline once you have done
 enough work. A work counter $E$ accumulates the work done (or only the part above a power
@@ -323,9 +331,9 @@ Read these before trusting a number on race day.
 * **W′bal recovery is fast in this model.** Optimal plans drain W′ to zero before
   every crest and recover on the descents. That matches the model, but real
   repeatability is lower, so consider raising `w_prime_final` or using a smaller W′.
-* **The carbohydrate model is coarse**: a logistic CHO fraction, constant gross
-  efficiency, no resting metabolism, no gut-absorption dynamics. Calibrate
-  `cho_crossover`/`cho_slope` against lab substrate data if you have it.
+* **The carbohydrate model is coarse**: a power-law CHO fraction, a fixed anaerobic cost
+  above CP, constant gross efficiency, no resting metabolism, no gut-absorption dynamics.
+  Calibrate `cho_exponent` against lab substrate data if you have it.
 * **`aero_cp_factor` is individual.** The default 0.96 is a typical value, not a measured
   one; test yourself (e.g. 20 min aero vs upright on a climb).
 * **Crosswind yaw is ignored**: only the along-track wind component enters, so $C_dA$
@@ -349,7 +357,7 @@ Read these before trusting a number on race day.
 | **CHO** | Carbohydrate. Your muscles burn a mix of carbohydrate and fat; the harder you ride, the larger the carbohydrate share. |
 | **Glycogen** ($G$) | The carbohydrate stored in your muscles and liver, in grams (≈400–600 g). Running it low is "hitting the wall". In config: `glycogen` (start) and `glycogen_final` (what must be left at T2). |
 | **CHO intake** ($I_\text{CHO}$) | Carbohydrate you eat and drink *and absorb* while riding, in g/h (typically 60–120 g/h). It slows the fall of the glycogen store. In config: `cho_intake`. |
-| **CHO fraction** ($f_\text{CHO}$) | The share of your energy that comes from carbohydrate. It rises with intensity: low at easy power (mostly fat), close to 100% near CP. The curve's midpoint and steepness are `cho_crossover` and `cho_slope`. |
+| **CHO fraction** ($f_\text{CHO}$) | The share of your energy that comes from carbohydrate. It rises with intensity: low at easy power (mostly fat), close to 100% near CP. `cho_exponent` sets how fast it rises: higher means more fat at easy power. Above CP every extra watt costs about 2.4 times the carbohydrate of a fully aerobic one. |
 | **Intensity** | Power relative to CP, $P/CP$. 0.75 means riding at 75% of CP. |
 | **GE** (gross efficiency) | The fraction of the energy your body burns that ends up as power at the pedals, typically 0.19–0.23. The rest becomes heat. In config: `gross_efficiency`. |
 | **Metabolic power** | The energy your body burns per second, $P / \text{GE}$. At 250 W and GE = 0.21, that's about 1190 W. |

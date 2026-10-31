@@ -3,7 +3,7 @@ import pytest
 from scipy.optimize import brentq
 
 from wattoptimizer import Athlete, Course, RaceSpec, simulate
-from wattoptimizer import physics
+from wattoptimizer import physics, physiology
 from wattoptimizer.wind import ConstantWind, head_wind_component
 
 
@@ -51,3 +51,20 @@ def test_cornering_limit_at_turnaround(hilly_out_and_back):
     turn = hilly_out_and_back.n // 2
     assert vmax[turn] < 12.0
     assert np.median(vmax) == RaceSpec().max_speed
+
+
+def test_cho_burn_is_convex_so_surging_saves_nothing():
+    athlete = Athlete(cp=250.0)
+    power = np.linspace(0.0, 2.5 * athlete.cp, 501)
+    rate = physiology.cho_oxidation(power, athlete)
+    assert np.all(np.diff(rate, 2) >= -1e-12)  # convex, including across CP
+    # alternating 120/380 W burns more than a steady 250 W
+    surge = 0.5 * (physiology.cho_oxidation(120.0, athlete) + physiology.cho_oxidation(380.0, athlete))
+    assert surge > physiology.cho_oxidation(250.0, athlete)
+    # below CP it is the CHO fraction times the metabolic rate; above CP each watt costs more
+    p = 200.0
+    assert np.isclose(physiology.cho_oxidation(p, athlete),
+                      physiology.cho_fraction(p, athlete) * p / athlete.gross_efficiency / physiology.CHO_ENERGY)
+    aerobic_watt = 1.0 / athlete.gross_efficiency / physiology.CHO_ENERGY
+    extra = physiology.cho_oxidation(300.0, athlete) - physiology.cho_oxidation(299.0, athlete)
+    assert extra > 2.0 * aerobic_watt
